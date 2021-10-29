@@ -4,7 +4,8 @@ import { Card, Menu, MenuItem } from '@ui-kitten/components';
 import React from 'react';
 import { Fragment } from 'react';
 import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
-import About from './About';
+import storage from '../storage/storage';
+import About from './Profile/About';
 
 export default function Profile() {
     const navigation = useNavigation();
@@ -15,14 +16,26 @@ export default function Profile() {
             <Menu>
                 <MenuItem title='User Profile'/>
                 <MenuItem title='Favorite'/>
-                <MenuItem title='Bought'/>
-                <MenuItem title='Sold'/>
+                <MenuItem title='Buy'/>
+                <MenuItem
+                    title='Sell'
+                    onPress={() => {
+                        navigation.navigate('SellDashboard')
+                    }}/>
                 <MenuItem title='Settings'/>
                 <MenuItem
                     title='About'
                     onPress={() =>
                         navigation.navigate('About')
                     }
+                />
+                <MenuItem
+                    title='Log out'
+                    onPress={() => {
+                        storage.removeCurrentUser()
+                            .then(() => navigation.navigate('Login', { currentUser: null }))
+                            .catch(err => console.error(err))
+                    }}
                 />
             </Menu>
         </View>

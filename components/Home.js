@@ -1,10 +1,15 @@
+import { useNavigation } from '@react-navigation/core';
 import { Card } from '@ui-kitten/components';
 import React from 'react';
 import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { color } from 'react-native-reanimated';
-import { FEATURED_PRODUCTS, POPULAR_PRODUCTS } from '../data/products';
+import { FEATURED_PRODUCTS, POPULAR_PRODUCTS } from '../storage/data/products';
 
-export default function Home() {
+export default function Home({ currentUser }) {
+    console.log('HOME: ' + JSON.stringify(currentUser))
+    if (!currentUser) {
+        return null
+    }
 
     const productsCards = (products) => {
         return products.map((product, index) => {
@@ -17,7 +22,7 @@ export default function Home() {
             let specialStyle = {};
             if (index === 0) {
                 specialStyle = { marginLeft : 0 };
-            } else if (index === FEATURED_PRODUCTS.length-1) {
+            } else if (index === products.length-1) {
                 specialStyle = { marginRight : 0 };
             }
             return (
@@ -35,16 +40,17 @@ export default function Home() {
         <SafeAreaView style={styles.container}>
             <ScrollView style={styles.scrollview}>
                 <StatusBar barStyle="dark-content" />
-                    <View style={styles.body}>
-                        <Text style={styles.header_font}>Featured Products</Text>
-                            <ScrollView horizontal={true}>
-                                {featuredProductsCards}
-                            </ScrollView>
-                        <Text style={styles.header_font}>Popular Products</Text>
-                            <ScrollView horizontal={true}>
-                                {popularProductsCards}
-                            </ScrollView>
-                    </View>
+                <Text>Hello, {currentUser.first_name} {currentUser.last_name}!</Text>
+                <View style={styles.body}>
+                    <Text style={styles.header_font}>Featured Products</Text>
+                        <ScrollView horizontal={true}>
+                            {featuredProductsCards}
+                        </ScrollView>
+                    <Text style={styles.header_font}>Popular Products</Text>
+                        <ScrollView horizontal={true}>
+                            {popularProductsCards}
+                        </ScrollView>
+                </View>
             </ScrollView>
         </SafeAreaView>
     );

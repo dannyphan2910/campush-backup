@@ -9,7 +9,7 @@ export default function About() {
                 <StatusBar barStyle="dark-content" />
                     <View style= {styles.about}>
                         <Text style= {styles.about}>Campush is a campus e-commerce platform for college students to sell and buy</Text>
-                        <Image style= {styles.image} source={require('../assets/Campush-logos.jpeg')} />
+                        <Image style= {styles.image} source={require('../../assets/Campush-logos.jpeg')} />
                     </View>
             </ScrollView>
         </SafeAreaView>

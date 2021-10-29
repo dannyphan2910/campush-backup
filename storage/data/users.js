@@ -15,9 +15,9 @@ export const USERS = [
     },
     {
         id: 3,
-        first_name: "Thu",
-        last_name: "Le",
-        email: "thule@brandeis.edu",
+        first_name: "Vy",
+        last_name: "Tran",
+        email: "tnpvie211@brandeis.edu",
         avatar: ""
     },
     {
@@ -31,7 +31,7 @@ export const USERS = [
         id: 5,
         first_name: "Novia",
         last_name: "Wu",
-        email: "nnoviawu@brandeis.edu",
+        email: "noviawu@brandeis.edu",
         avatar: ""
     },
     {
@@ -43,16 +43,16 @@ export const USERS = [
     },
     {
         id: 7,
-        first_name: "Vy",
-        last_name: "Phan",
-        email: "vyphan@brandeis.edu",
+        first_name: "Anh",
+        last_name: "Nguyen",
+        email: "nguyena@brandeis.edu",
         avatar: ""
     },
     {
         id: 8,
-        first_name: "Vy",
-        last_name: "Tran",
-        email: "vytran@brandeis.edu",
+        first_name: "Selena",
+        last_name: "Lin",
+        email: "selenamumu@brandeis.edu",
         avatar: ""
     },
     {
