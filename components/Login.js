@@ -6,32 +6,39 @@ import { useNavigation } from '@react-navigation/core';
 import { db } from '../firebase'
 
 export default function Login({ route, currentUser }) {
-    console.log('LOGIN: ' + JSON.stringify(currentUser))
     const [email, setEmail] = useState("")
     const navigation = useNavigation();
 
     if (currentUser && (!route.params || route.params.currentUser)) {
-        navigation.navigate('Back', { currentUser: currentUser })
+        navigation.navigate('Main', { currentUser: currentUser })
         return null
     }
 
     const handleButton = e => {
         e.preventDefault()
         if (email) {
-            storage.setCurrentUser(email)
-                .then(success => {
-                    if (success) {
-                        storage.getCurrentUser()
-                            .then(user => {
-                                navigation.navigate('Back', { currentUser: user })
-                                // db.ref('users/' + user.email.substring(0, user.email.indexOf("@"))).set(user)
-                            })
-                            .catch(err => console.error(err))
-                    } else {
-                        Alert.alert('No user found with email: ' + email)
+            const username = email.substring(0, email.indexOf("@brandeis.edu"))
+            if (username.length > 0) {
+                // db.ref('name/[key]').set(object)
+                // db.ref('name/[key]').once('value', (snapshot) => {... snapshot.value()}, (err) => {...})
+                db.ref('users/' + username).once('value',
+                    (snapshot) => {
+                        if (!snapshot.exists()) {
+                            Alert.alert('No Brandeis user found with email: ' + email)
+                        } else {
+                            const user = snapshot.val()
+                            storage.setCurrentUser(user)
+                                .then(() => navigation.navigate('Main', { currentUser: user }))
+                                .catch(err => console.error(err))
+                        }
+                    },
+                    (err) => {
+                        console.error(err)
                     }
-                })
-                .catch(err => console.error(err))
+                )
+            } else {
+                Alert.alert('No Brandeis user found with email: ' + email)
+            }
         }
     }
 
@@ -50,15 +57,16 @@ export default function Login({ route, currentUser }) {
                         placeholder="enter your email"
                         status={validateEmail(email) ? 'basic' : 'warning'}
                         onChangeText={(email) => setEmail(email)}
+                        keyboardType="email-address"
                     />
                 </View>
                 <Button
                     style={styles.button}
                     disabled={!(email && validateEmail(email))}
                     onPress={handleButton}
-                    title="login"
-                    color="black"
-                />
+                >
+                    Login
+                </Button>
             </View>
         </View>
     )

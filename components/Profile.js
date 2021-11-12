@@ -1,11 +1,8 @@
 import { useNavigation } from '@react-navigation/core';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Card, Menu, MenuItem } from '@ui-kitten/components';
+import { Menu, MenuItem } from '@ui-kitten/components';
 import React from 'react';
-import { Fragment } from 'react';
-import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { StatusBar, StyleSheet, Text, View } from 'react-native';
 import storage from '../storage/storage';
-import About from './Profile/About';
 
 export default function Profile() {
     const navigation = useNavigation();

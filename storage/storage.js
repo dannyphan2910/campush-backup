@@ -5,15 +5,8 @@ import { USERS } from './data/users';
 const KEY_USER = 'user' // key for users table
 
 export default storage = {
-    setCurrentUser: async (email) => {
+    setCurrentUser: async (userInfo) => {
         try {
-            let userInfo = USERS.filter(user => user.email === email)
-            // no result found
-            if (userInfo.length === 0) {
-                console.error('No user found with email: ' + email)
-                return false
-            }
-            userInfo = userInfo[0]
             const jsonValue = JSON.stringify(userInfo)
             await AsyncStorage.setItem(KEY_USER, jsonValue)
             return true

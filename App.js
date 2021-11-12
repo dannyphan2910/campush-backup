@@ -14,6 +14,7 @@ import Login from './components/Login';
 import storage from './storage/storage';
 import SellDashboard from './components/Profile/Sell/SellDashboard';
 import HeaderSell from './components/Profile/Sell/HeaderSell';
+import SellProduct from './components/Profile/Sell/SellProduct';
 
 const Tab = createBottomTabNavigator();
 
@@ -75,13 +76,16 @@ export default function App() {
           <Stack.Screen name="Login" options={{ header: props => null }} >
             {props => <Login {...props} currentUser={currentUser} />}
           </Stack.Screen>
-          <Stack.Screen name="Back" options={{ headerTitle: props => <Header {...props} />, headerBackVisible: false }}>
+          <Stack.Screen name="Main" options={{ headerTitle: props => <Header {...props} />, headerBackVisible: false }}>
             {props => <Main {...props} currentUser={currentUser} />}
           </Stack.Screen>
           <Stack.Screen name="SellDashboard" options={{ headerTitle: props => <HeaderSell {...props} />}} >
             {props => <SellDashboard {...props} currentUser={currentUser} />}
           </Stack.Screen>
-          <Stack.Screen name="About" component={About} />
+          <Stack.Screen name="SellProduct" options={{ headerBackTitle: '' }} >
+            {props => <SellProduct {...props} currentUser={currentUser} />}
+          </Stack.Screen>
+          <Stack.Screen name="About" options={{ headerBackTitle: '' }} component={About} />
         </Stack.Navigator>
       </NavigationContainer>
     </ApplicationProvider>
