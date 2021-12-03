@@ -23,7 +23,29 @@ Are you a college students? Do you need to move-out? Are you stressed about what
 
 <img src="https://github.com/nguyentl/campush/blob/main/screenshots/SellerProductPage.PNG?raw=true" alt="login page" width="200"/>
 
+### _Purchased Screen:_
 
+<img src="https://github.com/nguyentl/campush/blob/main/screenshots/PurchasedPage.PNG?raw=true" alt="login page" width="200"/>
+
+### Sold Screen:_
+
+<img src="https://github.com/nguyentl/campush/blob/main/screenshots/SoldPage.PNG?raw=true" alt="login page" width="200"/>
+
+### _About Screen:_
+
+<img src="https://github.com/nguyentl/campush/blob/main/screenshots/AboutPage.PNG?raw=true" alt="login page" width="200"/>
+
+### Crate Product Screen:_
+
+<img src="https://github.com/nguyentl/campush/blob/main/screenshots/AddSellProductPage.PNG?raw=true" alt="login page" width="200"/>
+
+### _Poduct Screen:_
+
+<img src="https://github.com/nguyentl/campush/blob/main/screenshots/ProductPage.PNG.PNG?raw=true" alt="login page" width="200"/>
+
+### _Edit Product Screen:_
+
+<img src="https://github.com/nguyentl/campush/blob/main/screenshots/EditProductPage.PNG?raw=true" alt="login page" width="200"/>
 
 ## Technologies
 
@@ -38,3 +60,4 @@ In this project I used the technologies below:
 
 - I also used Async Storage to save the current user information so that the user doesn't have to re-login.
 - I also implemented Context API to pass user information down to components.
+
