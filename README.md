@@ -65,3 +65,17 @@ In this project I used the technologies below:
 - I also used Async Storage to save the current user information so that the user doesn't have to re-login.
 - I also implemented Context API to pass user information down to components.
 
+## **How to run?**
+
+To run this app:
+
+1. Clone the repo and have npm install all the dependencies:
+
+2. In terminal, run:
+
+    ```console
+    npm install
+    expo start
+    ```
+
+3. From there, expo will open a window in your browser that will allows you to scan the QR code with your Expo app on our mobile phone. 
