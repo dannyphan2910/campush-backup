@@ -23,11 +23,11 @@ Are you a college students? Do you need to move-out? Are you stressed about what
 
 <img src="https://github.com/nguyentl/campush/blob/main/screenshots/SellerProductPage.PNG?raw=true" alt="login page" width="200"/>
 
-### _Purchased Screen:_
+### _History/Purchased Screen:_
 
 <img src="https://github.com/nguyentl/campush/blob/main/screenshots/PurchasedPage.PNG?raw=true" alt="login page" width="200"/>
 
-### _Sold Screen:_
+### _History/Sold Screen:_
 
 <img src="https://github.com/nguyentl/campush/blob/main/screenshots/SoldPage.PNG?raw=true" alt="login page" width="200"/>
 
