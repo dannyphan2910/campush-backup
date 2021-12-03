@@ -27,7 +27,7 @@ Are you a college students? Do you need to move-out? Are you stressed about what
 
 <img src="https://github.com/nguyentl/campush/blob/main/screenshots/PurchasedPage.PNG?raw=true" alt="login page" width="200"/>
 
-### Sold Screen:_
+### _Sold Screen:_
 
 <img src="https://github.com/nguyentl/campush/blob/main/screenshots/SoldPage.PNG?raw=true" alt="login page" width="200"/>
 
