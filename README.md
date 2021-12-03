@@ -35,6 +35,10 @@ Are you a college students? Do you need to move-out? Are you stressed about what
 
 <img src="https://github.com/nguyentl/campush/blob/main/screenshots/AboutPage.PNG?raw=true" alt="login page" width="200"/>
 
+### _Find Screen:_
+
+<img src="https://github.com/nguyentl/campush/blob/main/screenshots/FindPage.PNG?raw=true" alt="login page" width="200"/>
+
 ### _Crate Product Screen:_
 
 <img src="https://github.com/nguyentl/campush/blob/main/screenshots/AddSellProductPage.PNG?raw=true" alt="login page" width="200"/>
