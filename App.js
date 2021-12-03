@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
 import Home from './components/Home';
 import * as eva from '@eva-design/eva';
-import { ApplicationProvider, Layout, Text } from '@ui-kitten/components';
+import { ApplicationProvider } from '@ui-kitten/components';
 import { NavigationContainer } from '@react-navigation/native';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Profile from './components/Profile';
 import Header from './components/Header';
@@ -15,36 +15,55 @@ import storage from './storage/storage';
 import SellDashboard from './components/Profile/Sell/SellDashboard';
 import HeaderSell from './components/Profile/Sell/HeaderSell';
 import SellProduct from './components/Profile/Sell/SellProduct';
+import { UserContext, UserProvider } from './context/user_context';
+import PurchasedList from './components/Profile/History/PurchasedList';
+import SoldList from './components/Profile/History/SoldList';
+import Product from './components/Product';
 
 const Tab = createBottomTabNavigator();
 
-function Main({ route }) {
-  const { currentUser } = route.params
+function Main() {
+  const { currentUser, setCurrentUser } = useContext(UserContext)
 
   return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName;
+    <UserContext.Provider value={{ currentUser, setCurrentUser }}>
+      <Tab.Navigator screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
 
-        if (route.name === 'Home') {
-          iconName = focused
-            ? 'home'
-            : 'home-outline';
-          return <Ionicons name={iconName} size={size} color={color} />;
-        } else if (route.name === 'Profile') {
-          iconName = focused ? 'user-alt' : 'user';
-          return <FontAwesome5 name={iconName} size={size} color={color} />;
-        }
+          if (route.name === 'Home') {
+            iconName = focused
+              ? 'home'
+              : 'home-outline';
+            return <Ionicons name={iconName} size={size} color={color} />;
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'user-alt' : 'user';
+            return <FontAwesome5 name={iconName} size={size} color={color} />;
+          }
 
-          return null;
-      },
-    })}>
+            return null;
+        },
+      })}>
 
-      <Tab.Screen name="Home" options={{ header: props => null }}>
-        {props => <Home {...props} currentUser={currentUser} />}
-      </Tab.Screen>
-      <Tab.Screen name="Profile" component={Profile} options={{ header: props => null }} />
-   </Tab.Navigator>
+        <Tab.Screen name="Home" options={{ header: props => null }} component={Home} />
+        <Tab.Screen name="Profile" options={{ header: props => null }} component={Profile}   />
+    </Tab.Navigator>
+   </UserContext.Provider>
+  );
+}
+
+const HistoryTab = createMaterialTopTabNavigator();
+
+function History() {
+  const { currentUser, setCurrentUser } = useContext(UserContext)
+
+  return (
+    <UserContext.Provider value={{ currentUser, setCurrentUser }}>
+      <HistoryTab.Navigator>
+        <Tab.Screen name="Purchased" component={PurchasedList} />
+        <Tab.Screen name="Sold" component={SoldList}   />
+      </HistoryTab.Navigator>
+    </UserContext.Provider>
   );
 }
 
@@ -55,48 +74,28 @@ export default function App() {
 
   useEffect(() => {
     function checkStorageForUser() {
-      if (!currentUser) {
-        storage.getCurrentUser()
-          .then(user => {
-            setCurrentUser(user)
-            console.log(user)
-          })
-          .catch(err => console.error(err))
-      }
+      storage.getCurrentUser()
+        .then(user => { setCurrentUser(user) })
+        .catch(err => console.error(err))
     }
     checkStorageForUser()
-  })
-
-  console.log(currentUser)
+  }, [])
 
   return (
-    <ApplicationProvider {...eva} theme={eva.light}>
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen name="Login" options={{ header: props => null }} >
-            {props => <Login {...props} currentUser={currentUser} />}
-          </Stack.Screen>
-          <Stack.Screen name="Main" options={{ headerTitle: props => <Header {...props} />, headerBackVisible: false }}>
-            {props => <Main {...props} currentUser={currentUser} />}
-          </Stack.Screen>
-          <Stack.Screen name="SellDashboard" options={{ headerTitle: props => <HeaderSell {...props} />}} >
-            {props => <SellDashboard {...props} currentUser={currentUser} />}
-          </Stack.Screen>
-          <Stack.Screen name="SellProduct" options={{ headerBackTitle: '' }} >
-            {props => <SellProduct {...props} currentUser={currentUser} />}
-          </Stack.Screen>
-          <Stack.Screen name="About" options={{ headerBackTitle: '' }} component={About} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </ApplicationProvider>
+    <UserContext.Provider value={{ currentUser, setCurrentUser }}>
+      <ApplicationProvider {...eva} theme={eva.light}>
+        <NavigationContainer>
+          <Stack.Navigator>
+            <Stack.Screen name="Login" options={{ header: props => null }} component={Login} />
+            <Stack.Screen name="Main" options={{ headerTitle: props => <Header {...props} />, headerBackVisible: false }} component={Main} />
+            <Stack.Screen name="SellDashboard" options={{ headerTitle: props => <HeaderSell {...props} />}} component={SellDashboard} />
+            <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: '' }} component={SellProduct} />
+            <Stack.Screen name="History" options={{ headerBackTitle: '' }} component={History} />
+            <Stack.Screen name="About" options={{ headerBackTitle: '' }} component={About} />
+            <Stack.Screen name="Product" options={{ headerBackTitle: '', headerTitle: '' }} component={Product} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ApplicationProvider>
+    </UserContext.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

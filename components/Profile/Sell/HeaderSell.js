@@ -12,8 +12,8 @@ export default function HeaderSell() {
 
     return (
         <View style={styles.header}>
-            <Button appearance='ghost' size='giant' onPress={handleButton}>
-                <AntDesign name="pluscircleo" size={24} color="black" />
+            <Button appearance='ghost' size='giant'>
+                <AntDesign name="pluscircleo" size={24} color="black" onPress={handleButton} />
             </Button>
         </View>
     )

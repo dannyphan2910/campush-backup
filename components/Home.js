@@ -1,11 +1,13 @@
-import { useNavigation } from '@react-navigation/core';
 import { Card } from '@ui-kitten/components';
-import React from 'react';
+import React, { useContext } from 'react';
 import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
-import { color } from 'react-native-reanimated';
+import { UserContext } from '../context/user_context';
+import { UserHelper } from '../helper/helper';
 import { FEATURED_PRODUCTS, POPULAR_PRODUCTS } from '../storage/data/products';
 
-export default function Home({ currentUser }) {
+export default function Home() {
+    const { currentUser } = useContext(UserContext)
+
     console.log('HOME: ' + JSON.stringify(currentUser))
     if (!currentUser) {
         return null

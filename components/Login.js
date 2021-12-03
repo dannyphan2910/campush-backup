@@ -1,16 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, Image, StyleSheet, TextInput, View } from 'react-native';
+import React, { useContext, useState } from 'react';
+import { Alert, Image, StyleSheet, View } from 'react-native';
 import storage from '../storage/storage';
 import { Input, Button } from '@ui-kitten/components';
 import { useNavigation } from '@react-navigation/core';
 import { db } from '../firebase'
+import { UserContext } from '../context/user_context';
+import { CommonActions } from '@react-navigation/native';
 
-export default function Login({ route, currentUser }) {
+export default function Login() {
+    const { currentUser, setCurrentUser } = useContext(UserContext)
+
     const [email, setEmail] = useState("")
     const navigation = useNavigation();
 
-    if (currentUser && (!route.params || route.params.currentUser)) {
-        navigation.navigate('Main', { currentUser: currentUser })
+    if (currentUser) {
+        navigation.dispatch(CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Main' }]
+        }))
         return null
     }
 
@@ -28,7 +35,10 @@ export default function Login({ route, currentUser }) {
                         } else {
                             const user = snapshot.val()
                             storage.setCurrentUser(user)
-                                .then(() => navigation.navigate('Main', { currentUser: user }))
+                                .then(() => {
+                                    setCurrentUser(user)
+                                    navigation.navigate('Main')
+                                })
                                 .catch(err => console.error(err))
                         }
                     },

@@ -1,10 +1,13 @@
 import { useNavigation } from '@react-navigation/core';
 import { Menu, MenuItem } from '@ui-kitten/components';
-import React from 'react';
+import React, { useContext } from 'react';
 import { StatusBar, StyleSheet, Text, View } from 'react-native';
+import { UserContext } from '../context/user_context';
 import storage from '../storage/storage';
+import { CommonActions } from '@react-navigation/native';
 
 export default function Profile() {
+    const { setCurrentUser } = useContext(UserContext)
     const navigation = useNavigation();
 
     return (
@@ -12,13 +15,17 @@ export default function Profile() {
             <StatusBar barStyle="dark-content" />
             <Menu>
                 <MenuItem title='User Profile'/>
-                <MenuItem title='Favorite'/>
-                <MenuItem title='Buy'/>
+                <MenuItem title='Favorites'/>
                 <MenuItem
                     title='Sell'
                     onPress={() => {
                         navigation.navigate('SellDashboard')
                     }}/>
+                <MenuItem
+                    title='History'
+                    onPress={() =>
+                        navigation.navigate('History')
+                    }/>
                 <MenuItem title='Settings'/>
                 <MenuItem
                     title='About'
@@ -30,7 +37,13 @@ export default function Profile() {
                     title='Log out'
                     onPress={() => {
                         storage.removeCurrentUser()
-                            .then(() => navigation.navigate('Login', { currentUser: null }))
+                            .then(() => {
+                                setCurrentUser(null)
+                                navigation.dispatch(CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: 'Login' }]
+                                }))
+                            })
                             .catch(err => console.error(err))
                     }}
                 />
