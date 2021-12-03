@@ -1,1 +1,27 @@
-# Heading 1 campush
+# _Campush_
+A campus **e-commerce platform** for college students to resell and buy products!
+
+## **Elevator Pitch**
+
+Are you a college students? Do you need to move-out? Are you stressed about what to do with all the things in your dorm room? **_Campush_** is exactly what you are looking for! An e-commerce platform for college students to resell and buy products :wink:
+
+## **Screenshots**
+
+### _Login Screen:_
+<img src="https://github.com/nguyentl/campush/blob/main/screenshots/IMG_5200.PNG?raw=true" alt="login page" width="200"/>
+
+
+
+## Technologies
+
+In this project I used the technologies below:
+- React
+- React Native
+- Expo
+- React Navigation
+- UI Kittens
+- Expo Camera
+- Firebase (Realtime Database, Storage)
+
+- I also used Async Storage to save the current user information so that the user doesn't have to re-login.
+- I also implemented Context API to pass user information down to components.
