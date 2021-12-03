@@ -60,11 +60,10 @@ export default function SellProduct() {
                     <Input
                         style={styles.input}
                         onChangeText={setName}
-                        maxLength={20}
-                        placeholder="Name (max 20 characters)"
+                        placeholder="Name"
                     />
                     <Input
-                        style={{ margin: 12, borderWidth: 1, padding: 10, }}
+                        style={{ margin: 12, borderWidth: 1, padding: 10, backgroundColor: 'white' }}
                         multiline={true}
                         maxLength={200}
                         textStyle={{ minHeight: 64 }}
@@ -214,6 +213,7 @@ const styles = StyleSheet.create({
       margin: 12,
       borderWidth: 1,
       padding: 10,
+      backgroundColor: 'white'
     },
     button: {
         margin: 50,

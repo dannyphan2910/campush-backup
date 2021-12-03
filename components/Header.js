@@ -9,9 +9,21 @@ export default function Header() {
 
     return (
         <View style={styles.header}>
-            <Button appearance='ghost' size='giant'>
-                <Feather name="shopping-bag" size={24} color="black" />
-            </Button>
+            <View>
+                <Button appearance='ghost' size='giant'>
+                    <Feather name="refresh-ccw" size={24} color="black" />
+                </Button>
+            </View>
+            <View>
+                <Button appearance='ghost' size='giant'>
+                    <Feather name="refresh-ccw" size={24} color="black" />
+                </Button>
+            </View>
+            <View style={{ flex: 1 }}>
+                <Button appearance='ghost' size='giant'>
+                    <Feather name="shopping-bag" size={24} color="black" />
+                </Button>
+            </View>
         </View>
     );
   }
@@ -21,7 +33,7 @@ const styles = StyleSheet.create({
         width: windowWidth - 25,
         flex: 1,
         flexDirection: 'row',
-        alignItems: 'flex-end',
-        justifyContent: 'flex-end'
+        alignItems: 'center',
+        justifyContent: 'space-between'
     },
 });

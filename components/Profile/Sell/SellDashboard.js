@@ -1,17 +1,11 @@
-import { Card } from '@ui-kitten/components';
 import React, { useContext, useEffect, useState } from 'react';
-import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
-import { Entypo } from '@expo/vector-icons';
-import { DatabaseHelper, UserHelper } from '../../../helper/helper';
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { GeneralHelper, UserHelper } from '../../../helper/helper';
 import { db } from '../../../firebase';
 import { UserContext } from '../../../context/user_context';
-import { useNavigation } from '@react-navigation/core';
-
 
 export default function SellDashboard() {
     const { currentUser } = useContext(UserContext)
-
-    const navigation = useNavigation()
 
     console.log('SELL DASHBOARD: ' + JSON.stringify(currentUser))
     const [userProducts, setUserProducts] = useState([])
@@ -44,27 +38,6 @@ export default function SellDashboard() {
         getUserProducts()
     }, [])
 
-    const userProductsCards = (products) => {
-        return products.map((product, index) => {
-            return (
-                <Card style={styles.card} key={product.id} onPress={() => navigation.navigate('Product', { id: product.id })}>
-                    <View style={{ flex: 1, flexDirection: 'row' }}>
-                        <View style={{ flex: 2, justifyContent: 'center' }}>
-                            <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_url }} />
-                        </View>
-                        <View style={{ flex: 3, justifyContent: 'space-between' }}>
-                            <Text>Name: {product.name}</Text>
-                            <Text>Price: ${product.price}</Text>
-                            <Text>
-                                <Entypo name="heart" size={18} color="black" /> {product.favorited_by ? product.favorited_by.length : 0}
-                            </Text>
-                        </View>
-                    </View>
-                </Card>
-            );
-        })
-    }
-
     const noProductsView = (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Text>No products listed. Create one now!</Text>
@@ -73,7 +46,7 @@ export default function SellDashboard() {
 
     const productsView = (
         <ScrollView>
-            {userProductsCards(userProducts)}
+            {GeneralHelper.getProductCardsLong(userProducts)}
         </ScrollView>
     )
 
@@ -84,7 +57,6 @@ export default function SellDashboard() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="dark-content" />
             {getProductCards}
         </SafeAreaView>
     );
@@ -94,8 +66,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         flexDirection: 'column',
-    },
-    card: {
-        margin: 5
+        backgroundColor: 'white'
     }
 });

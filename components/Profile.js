@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/core';
-import { Menu, MenuItem } from '@ui-kitten/components';
+import { Divider, Menu, MenuItem } from '@ui-kitten/components';
 import React, { useContext } from 'react';
-import { StatusBar, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { UserContext } from '../context/user_context';
 import storage from '../storage/storage';
 import { CommonActions } from '@react-navigation/native';
@@ -12,29 +12,25 @@ export default function Profile() {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" />
-            <Menu>
-                <MenuItem title='User Profile'/>
-                <MenuItem title='Favorites'/>
+            <Menu style={{ backgroundColor: 'white' }}>
                 <MenuItem
-                    title='Sell'
+                    title={() => <Text style={{ paddingLeft: 10, fontSize: 20, fontWeight: '500' }}>Sell</Text>}
                     onPress={() => {
                         navigation.navigate('SellDashboard')
                     }}/>
                 <MenuItem
-                    title='History'
+                    title={() => <Text style={{ paddingLeft: 10, fontSize: 20, fontWeight: '500' }}>History</Text>}
                     onPress={() =>
                         navigation.navigate('History')
                     }/>
-                <MenuItem title='Settings'/>
                 <MenuItem
-                    title='About'
+                    title={() => <Text style={{ paddingLeft: 10, fontSize: 20, fontWeight: '500' }}>About</Text>}
                     onPress={() =>
                         navigation.navigate('About')
                     }
                 />
                 <MenuItem
-                    title='Log out'
+                    title={() => <Text style={{ paddingLeft: 10, fontSize: 20, fontWeight: '500', color: 'red' }}>Log out</Text>}
                     onPress={() => {
                         storage.removeCurrentUser()
                             .then(() => {
@@ -47,6 +43,7 @@ export default function Profile() {
                             .catch(err => console.error(err))
                     }}
                 />
+                <Divider style={{ width: 1 }} />
             </Menu>
         </View>
     );
@@ -55,6 +52,7 @@ export default function Profile() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        // flexDirection: 'column',
+        backgroundColor: 'white',
+        paddingTop: 50
     },
 });

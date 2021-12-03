@@ -1,12 +1,45 @@
-import { Card } from '@ui-kitten/components';
-import React, { useContext } from 'react';
-import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/core';
+import { Card, Layout, Button } from '@ui-kitten/components';
+import { Feather } from '@expo/vector-icons';
+import React, { useContext, useEffect, useState } from 'react';
+import { Image, SafeAreaView, ScrollView, StyleSheet, Text, View, StatusBar } from 'react-native';
 import { UserContext } from '../context/user_context';
-import { UserHelper } from '../helper/helper';
-import { FEATURED_PRODUCTS, POPULAR_PRODUCTS } from '../storage/data/products';
+import { db } from '../firebase';
 
 export default function Home() {
     const { currentUser } = useContext(UserContext)
+
+    const navigation = useNavigation()
+
+    const [featuredProducts, setFeatureProducts] = useState([])
+    const [refresh, setRefresh] = useState(true)
+
+    useEffect(() => {
+        const getProducts = () => {
+            db.ref('products').on('value',
+                (querySnapshot) => {
+                    if (querySnapshot.exists()) {
+                        let products = []
+                        querySnapshot.forEach((productSnapshot) => {
+                            var random_boolean = Math.random() < 0.5;
+                            if (random_boolean) {
+                                const product = productSnapshot.val();
+                                if (!product.purchased_by) {
+                                    products.push(product)
+                                }
+                            }
+                        });
+                        products = products.slice(0, 10)
+                        setFeatureProducts(products)
+                        setRefresh(false)
+                    } else {
+                        console.log('No products found')
+                    }
+                }
+            )
+        }
+        getProducts()
+    }, [refresh])
 
     console.log('HOME: ' + JSON.stringify(currentUser))
     if (!currentUser) {
@@ -14,44 +47,64 @@ export default function Home() {
     }
 
     const productsCards = (products) => {
-        return products.map((product, index) => {
-            const Header = (props) => (
-                <View {...props}>
-                    <Text style={styles.product_font}>{product.name}</Text>
-                    <Text style={styles.seller_font}>{product.seller.first_name} {product.seller.last_name}</Text>
-                </View>
-            );
-            let specialStyle = {};
-            if (index === 0) {
-                specialStyle = { marginLeft : 0 };
-            } else if (index === products.length-1) {
-                specialStyle = { marginRight : 0 };
-            }
+        const Header = (props) => {
+            const max = 18
             return (
-                <Card style={[styles.card, specialStyle]} key={product.id} header={Header}>
-                    <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail }} />
-                </Card>
-            );
-        })
+                <View {...props} style={{ padding: 10 }}>
+                    <Text style={styles.product_font} numberofLines={1}>{props.product.name.length > max ?
+                        (props.product.name).substring(0,max-3) + '...' : props.product.name}</Text>
+                    <Text style={styles.seller_font}>{props.product.sold_by}</Text>
+                </View>
+            )
+        }
+        const getCard = (product) => (
+            <Card style={styles.card}
+                key={product.id}
+                header={(props) => <Header {...props} product={product} />}
+                onPress={() => navigation.navigate('Product', { id: product.id })}>
+                <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_url }} />
+            </Card>
+        )
+        let productsCards = []
+        for (var i = 0; i < products.length-1; i+=2) {
+            const product1 = products[i]
+            const product2 = products[i+1]
+            const card1 = getCard(product1)
+            const card2 = getCard(product2)
+            productsCards.push(
+                <Layout style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }} level='1'>
+                    {card1}
+                    {card2}
+                </Layout>
+            )
+        }
+        return productsCards
     }
 
-    const featuredProductsCards = productsCards(FEATURED_PRODUCTS)
-    const popularProductsCards = productsCards(POPULAR_PRODUCTS)
+    console.log('FEATURED PRODUCTS', featuredProducts)
+    const featuredProductsCards = productsCards(featuredProducts)
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView style={styles.scrollview}>
-                <StatusBar barStyle="dark-content" />
-                <Text>Hello, {currentUser.first_name} {currentUser.last_name}!</Text>
+            <StatusBar barStyle="dark-content" />
+
+            <ScrollView style={{ width: '100%' }}>
+                <Text style={{padding: 20, fontSize: 28, fontWeight: '600',}}>Hello, {currentUser.first_name} {currentUser.last_name}!</Text>
                 <View style={styles.body}>
-                    <Text style={styles.header_font}>Featured Products</Text>
-                        <ScrollView horizontal={true}>
-                            {featuredProductsCards}
-                        </ScrollView>
-                    <Text style={styles.header_font}>Popular Products</Text>
-                        <ScrollView horizontal={true}>
-                            {popularProductsCards}
-                        </ScrollView>
+                    <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <View style={{ flex: 5 }}>
+                            <Text style={styles.header_font}>Featured Products</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Button appearance='ghost' size='medium' onPress={() => setRefresh(true)}>
+                                <Feather name="refresh-ccw" size={22} color="black" />
+                            </Button>
+                        </View>
+                    </View>
+
+                    <View style={styles.bodyContainer}>
+                        {featuredProductsCards}
+                    </View>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -60,13 +113,19 @@ export default function Home() {
 
 const styles = StyleSheet.create({
     container: {
-        minHeight: '100%',
+        flex: 1,
         backgroundColor: '#fff',
         alignItems: 'center',
         justifyContent: 'center',
     },
+    bodyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     card: {
-        margin: 5,
+        marginVertical: 5,
+        width: '48%'
     },
     body: {
         alignItems: 'flex-start',
@@ -76,7 +135,7 @@ const styles = StyleSheet.create({
     header_font: {
         fontWeight: 'bold',
         fontSize: 20,
-        paddingTop: 30,
+        paddingBottom: 10,
     },
     product_font: {
         // fontFamily: 'San Francisco',

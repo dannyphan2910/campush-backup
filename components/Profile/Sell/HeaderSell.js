@@ -1,7 +1,7 @@
 import React from 'react'
 import { AntDesign } from '@expo/vector-icons';
 import { Button } from '@ui-kitten/components';
-import { Dimensions, StatusBar, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/core';
 
 const windowWidth = Dimensions.get('window').width;
@@ -12,8 +12,8 @@ export default function HeaderSell() {
 
     return (
         <View style={styles.header}>
-            <Button appearance='ghost' size='giant'>
-                <AntDesign name="pluscircleo" size={24} color="black" onPress={handleButton} />
+            <Button appearance='ghost' size='giant' onPress={handleButton}>
+                <AntDesign name="pluscircleo" size={24} color="black" />
             </Button>
         </View>
     )
