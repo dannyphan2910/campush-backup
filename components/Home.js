@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/core';
-import { Card, Layout, Button } from '@ui-kitten/components';
+import { Card, Layout, Button, Divider } from '@ui-kitten/components';
 import { Feather } from '@expo/vector-icons';
 import React, { useContext, useEffect, useState } from 'react';
 import { Image, SafeAreaView, ScrollView, StyleSheet, Text, View, StatusBar } from 'react-native';
@@ -22,14 +22,13 @@ export default function Home() {
                         let products = []
                         querySnapshot.forEach((productSnapshot) => {
                             var random_boolean = Math.random() < 0.5;
-                            if (random_boolean) {
-                                const product = productSnapshot.val();
-                                if (!product.purchased_by) {
+                            if (!productSnapshot.hasChild('purchased_by')) {
+                                if (random_boolean) {
+                                    const product = productSnapshot.val();
                                     products.push(product)
                                 }
                             }
                         });
-                        products = products.slice(0, 10)
                         setFeatureProducts(products)
                         setRefresh(false)
                     } else {
@@ -41,7 +40,7 @@ export default function Home() {
         getProducts()
     }, [refresh])
 
-    console.log('HOME: ' + JSON.stringify(currentUser))
+    // console.log('HOME: ' + JSON.stringify(currentUser))
     if (!currentUser) {
         return null
     }
@@ -62,7 +61,9 @@ export default function Home() {
                 key={product.id}
                 header={(props) => <Header {...props} product={product} />}
                 onPress={() => navigation.navigate('Product', { id: product.id })}>
-                <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_url }} />
+                <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_url }} />
+                </View>
             </Card>
         )
         let productsCards = []
@@ -81,7 +82,6 @@ export default function Home() {
         return productsCards
     }
 
-    console.log('FEATURED PRODUCTS', featuredProducts)
     const featuredProductsCards = productsCards(featuredProducts)
 
     return (
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     },
     card: {
         marginVertical: 5,
-        width: '48%'
+        width: '48%',
     },
     body: {
         alignItems: 'flex-start',

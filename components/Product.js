@@ -1,10 +1,11 @@
 import { useNavigation } from '@react-navigation/core';
-import { Button, Divider, Input } from '@ui-kitten/components';
+import { Button, Divider, Input, Modal } from '@ui-kitten/components';
 import React, { useContext, useEffect, useState } from 'react'
 import { Alert, Dimensions, Image, Keyboard, KeyboardAvoidingView, SafeAreaView, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { UserContext } from '../context/user_context';
-import { db } from '../firebase';
-import { UserHelper } from '../helper/helper';
+import { db, firebaseStorage } from '../firebase';
+import { ImageHelper, UserHelper } from '../helper/helper';
+import CameraView from './CameraView';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -21,6 +22,8 @@ export default function Product({ route }) {
     const [name, setName] = useState("")
     const [description, setDescription] = useState("")
     const [price, setPrice] = useState(0)
+    const [cameraOpen, setCameraOpen] = useState(false)
+    const [imageURI, setImageURI] = useState()
 
     useEffect(() => {
         const getProduct = () => {
@@ -33,6 +36,7 @@ export default function Product({ route }) {
                             setName(product.name)
                             setDescription(product.description)
                             setPrice(product.price.toString())
+                            setImageURI(product.thumbnail_url)
                         } else {
                             console.log('No product found for id ' + id)
                         }
@@ -78,17 +82,21 @@ export default function Product({ route }) {
         })
     }
 
-    const handleEditSave = () => {
+    const handleEditSave = async () => {
+        let url = product.thumbnail_url
+        if (imageURI !== url) {
+            firebaseStorage.refFromURL(url).delete()
+            url = await ImageHelper.uploadImageAsync(imageURI)
+        }
         const updates = {
             name: name,
             description: description,
             price: parseFloat(price),
+            thumbnail_url: url
         }
         db.ref('products').child(id).update(updates, err => {
             if (!err) {
                 Alert.alert('Edit successfully')
-                setEditMode(false)
-                navigation.navigate('Home')
             } else {
                 Alert.alert('Edit unsuccessfully ' + err)
             }
@@ -97,6 +105,7 @@ export default function Product({ route }) {
 
     const handleDelete = () => {
         db.ref('products').child(id).remove()
+        firebaseStorage.refFromURL(product.thumbnail_url).delete()
         db.ref('users_products').child(username).child('active').orderByValue().equalTo(id).once('value',
             (snapshot) => {
                 if (snapshot.exists()) {
@@ -124,7 +133,8 @@ export default function Product({ route }) {
                 return (
                     <View style={{ flexDirection: 'row', flex: 1 }}>
                         <Button style={{ height: '100%', flex: 1, backgroundColor: '#FF6962', borderWidth: 0, borderRadius: 0 }} onPress={handleDelete}>DELETE</Button>
-                        <Button style={{ height: '100%', flex: 1, backgroundColor: '#77DF79', borderWidth: 0, borderRadius: 0 }} onPress={handleEditSave}>SAVE</Button>
+                        <Button style={{ height: '100%', flex: 1, backgroundColor: '#77DF79', borderWidth: 0, borderRadius: 0 }}
+                                onPress={() => {handleEditSave(); setEditMode(false); navigation.navigate('Home')}}>SAVE</Button>
                     </View>
                 )
             }
@@ -173,6 +183,19 @@ export default function Product({ route }) {
                         onChangeText={setDescription}
                         value={description}
                     />
+                    <View style={{ alignItems: 'center' }}>
+                        <Button
+                            style={styles.button}
+                            onPress={() => { Keyboard.dismiss(); setCameraOpen(true); }}
+                            status='success'
+                        >
+                            {imageURI ? 'Re-add Photo' : 'Add Photo'}
+                        </Button>
+                        <Modal visible={cameraOpen} backdropStyle={{ backgroundColor: 'transparent'}}>
+                            <CameraView closeCamera={() => setCameraOpen(false)} setImageURI={setImageURI} />
+                        </Modal>
+                        {imageURI && <Image style={styles.image} source={{ uri: imageURI }} />}
+                    </View>
                 </View>
             )
         }
@@ -227,5 +250,15 @@ const styles = StyleSheet.create({
     },
     productInfoDescription: {
         paddingHorizontal: 20,
-    }
+    },
+    button: {
+        margin: 50,
+        width: '50%'
+    },
+    image: {
+        width: 150,
+        height: 150,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 })

@@ -17,9 +17,11 @@ export default function Find() {
                         if (querySnapshot.exists()) {
                             let products = []
                             querySnapshot.forEach((productSnapshot) => {
-                                const product = productSnapshot.val();
-                                if (product.name.toLowerCase().includes(searchText.toLowerCase())) {
-                                    products.push(product)
+                                if (!productSnapshot.hasChild('purchased_by')) {
+                                    const product = productSnapshot.val();
+                                    if (product.name.toLowerCase().includes(searchText.toLowerCase())) {
+                                        products.push(product)
+                                    }
                                 }
                             });
                             setResults(products)
@@ -59,7 +61,7 @@ export default function Find() {
         <KeyboardAvoidingView style={styles.container}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <SafeAreaView style={styles.container}>
-                    <View style={{ flex: 1 }}>
+                    <View style={{ flex: 2, justifyContent: 'center' }}>
                         <Input
                             style={{ backgroundColor: 'white' }}
                             placeholder='Enter product name (more than 3 characters)'

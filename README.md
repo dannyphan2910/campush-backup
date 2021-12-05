@@ -3,7 +3,7 @@ A campus **e-commerce platform** for college students to resell and buy products
 
 ## **Elevator Pitch**
 
-Are you a college student? Do you need to move-out? Are you stressed about what to do with all the things in your dorm room? **_Campush_** is exactly what you are looking for! An e-commerce platform for college students to resell and buy products :wink:
+Are you a college students? Do you need to move-out? Are you stressed about what to do with all the things in your dorm room? **_Campush_** is exactly what you are looking for! An e-commerce platform for college students to resell and buy products :wink:
 
 ## **Screenshots**
 

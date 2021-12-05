@@ -7,7 +7,7 @@ import { UserContext } from '../../../context/user_context';
 export default function SellDashboard() {
     const { currentUser } = useContext(UserContext)
 
-    console.log('SELL DASHBOARD: ' + JSON.stringify(currentUser))
+    // console.log('SELL DASHBOARD: ' + JSON.stringify(currentUser))
     const [userProducts, setUserProducts] = useState([])
 
     useEffect(() => {
