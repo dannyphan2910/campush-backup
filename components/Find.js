@@ -1,23 +1,27 @@
 import { Input } from '@ui-kitten/components'
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View, Text, SafeAreaView, ScrollView, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native'
-import { GeneralHelper } from '../helper/helper';
+import { GeneralHelper, UserHelper } from '../helper/helper';
 import { db } from '../firebase';
+import { UserContext } from '../context/user_context';
 
 export default function Find() {
+    const { currentUser } = useContext(UserContext)
+
     const [searchText, setSearchText] = useState('')
     const [results, setResults] = useState([])
 
     useEffect(() => {
         const getProducts = () => {
-            if (searchText && searchText.length >= 3) {
+            if (currentUser && searchText && searchText.length >= 3) {
+                const username = UserHelper.getUsername(currentUser.email)
                 db.ref('products').on('value',
                     (querySnapshot) => {
                         if (querySnapshot.exists()) {
                             let products = []
                             querySnapshot.forEach((productSnapshot) => {
-                                if (!productSnapshot.hasChild('purchased_by')) {
+                                if (!productSnapshot.hasChild('purchased_by') && productSnapshot.child('sold_by').val() !== username) {
                                     const product = productSnapshot.val();
                                     if (product.name.toLowerCase().includes(searchText.toLowerCase())) {
                                         products.push(product)

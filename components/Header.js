@@ -1,7 +1,7 @@
 import React from 'react';
 import { Feather } from '@expo/vector-icons';
 import { Button } from '@ui-kitten/components';
-import { Dimensions, StatusBar, StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
 
 const windowWidth = Dimensions.get('window').width;
 
