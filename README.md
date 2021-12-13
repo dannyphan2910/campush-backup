@@ -5,6 +5,9 @@ A campus **e-commerce platform** for college students to resell and buy products
 
 Are you a college students? Do you need to move-out and are stressed about what to do with all the things in your dorm room? Or are you looking for productts tto putt in your new dorm room? **_Campush_** is exactly what you are looking for! An e-commerce platform for college students to resell and buy products :wink:
 
+## Link to demos:
+https://drive.google.com/drive/folders/1iMxNr1LeYsluB5uY733_TNsyCGJcZNZe?usp=sharing
+
 ## **Screenshots**
 
 ### _Login Screen:_
@@ -79,6 +82,3 @@ To run this app:
     ```
 
 3. From there, expo will open a window in your browser that will allows you to scan the QR code with your Expo app on our mobile phone.
-
-## Link to demos:
-https://drive.google.com/drive/folders/1iMxNr1LeYsluB5uY733_TNsyCGJcZNZe?usp=sharing
