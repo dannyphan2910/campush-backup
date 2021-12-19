@@ -97,25 +97,25 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-    <UserContext.Provider value={{ currentUser, setCurrentUser }}>
-      <ApplicationProvider {...eva} theme={eva.light}>
-        <NavigationContainer>
-          <Stack.Navigator>
-            <Stack.Screen name="Login" options={{ header: props => null }} component={Login} />
-            <Stack.Screen name="Main" options={{ header: props => null }} component={Main} />
-            <Stack.Screen name="Account" options={{ headerBackTitle: '', headerTitle: 'Account' }} component={Account} />
-            <Stack.Screen name="Payment" options={{ headerBackTitle: '', headerTitle: 'Payment' }} component={Payment} />
-            <Stack.Screen name="SellDashboard" options={{ headerBackTitle: '', headerTitle: 'My Products', headerRight: props => <HeaderSell {...props} /> }} component={SellDashboard} />
-            <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: 'New Product' }} component={SellProduct} />
-            <Stack.Screen name="History" options={{ headerBackTitle: '', headerTitle: 'History' }} component={History} />
-            <Stack.Screen name="About" options={{ headerBackTitle: '', headerTitle: 'About Us' }} component={About} />
-            <Stack.Screen name="Product" options={{ headerBackTitle: '', headerTitle: '' }} component={Product} />
-            <Stack.Screen name="Messages" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageDashboard} />
-            <Stack.Screen name="Chat" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageView} />
-          </Stack.Navigator>
-        </NavigationContainer>
-      </ApplicationProvider>
-    </UserContext.Provider>
+      <UserContext.Provider value={{ currentUser, setCurrentUser }}>
+        <ApplicationProvider {...eva} theme={eva.light}>
+          <NavigationContainer>
+            <Stack.Navigator>
+              <Stack.Screen name="Login" options={{ header: props => null }} component={Login} />
+              <Stack.Screen name="Main" options={{ header: props => null }} component={Main} />
+              <Stack.Screen name="Account" options={{ headerBackTitle: '', headerTitle: 'Account' }} component={Account} />
+              <Stack.Screen name="Payment" options={{ headerBackTitle: '', headerTitle: 'Payment' }} component={Payment} />
+              <Stack.Screen name="SellDashboard" options={{ headerBackTitle: '', headerTitle: 'My Products', headerRight: props => <HeaderSell {...props} /> }} component={SellDashboard} />
+              <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: 'New Product' }} component={SellProduct} />
+              <Stack.Screen name="History" options={{ headerBackTitle: '', headerTitle: 'History' }} component={History} />
+              <Stack.Screen name="About" options={{ headerBackTitle: '', headerTitle: 'About Us' }} component={About} />
+              <Stack.Screen name="Product" options={{ headerBackTitle: '', headerTitle: '' }} component={Product} />
+              <Stack.Screen name="Messages" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageDashboard} />
+              <Stack.Screen name="Chat" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageView} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </ApplicationProvider>
+      </UserContext.Provider>
     </SafeAreaProvider>
   );
 }
