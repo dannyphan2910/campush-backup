@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Dimensions, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -40,9 +41,10 @@ export default function CameraView({ closeCamera, setImageURI }) {
     const takePhoto = async() => {
         if (cameraRef) {
             let photo = await cameraRef.takePictureAsync();
-            // console.log('photo URI', photo.uri);
-            // console.log(photo)
-            setImageURI(photo.uri)
+
+            console.log(photo)
+
+            compressImageAndSave(photo.uri)
             closeCamera()
         }
     }
@@ -58,10 +60,19 @@ export default function CameraView({ closeCamera, setImageURI }) {
         console.log(result);
 
         if (!result.cancelled) {
-            setImageURI(result.uri);
+            compressImageAndSave(result.uri);
             closeCamera()
         }
     };
+
+    const compressImageAndSave = async (uri) => {
+        const manipResult = await manipulateAsync(
+            uri,
+            [{ resize: { height: 500, width: 500 } }],
+            { compress: 0.8, format: SaveFormat.PNG }
+          );
+        setImageURI(manipResult.uri);
+    }
 
     return (
         <SafeAreaView style={{ flex: 1, width: windowWidth, height: windowHeight, backgroundColor: 'black' }}>

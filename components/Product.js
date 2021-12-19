@@ -9,7 +9,6 @@ import CameraView from './CameraView';
 import { FontAwesome, Feather, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import firebase from "firebase";
 
-
 const windowWidth = Dimensions.get('window').width;
 
 export default function Product({ route }) {
@@ -177,7 +176,7 @@ export default function Product({ route }) {
             )
         } else {
             return (
-                <KeyboardAvoidingView style={styles.container}>
+                <KeyboardAvoidingView style={styles.container} keyboardVerticalOffset = {100}>
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                         <View style={{ padding: 20 }}>
                             <Input
@@ -216,6 +215,14 @@ export default function Product({ route }) {
                                 </Modal>
                                 {imageURI && <Image style={styles.image} source={{ uri: imageURI }} />}
                             </View>
+                            <Input
+                                style={{ backgroundColor: 'white' }}
+                                multiline={true}
+                                maxLength={200}
+                                textStyle={{ minHeight: 64 }}
+                                onChangeText={setDescription}
+                                value={description}
+                            />
                         </View>
                     </TouchableWithoutFeedback>
                 </KeyboardAvoidingView>
