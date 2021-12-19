@@ -215,14 +215,6 @@ export default function Product({ route }) {
                                 </Modal>
                                 {imageURI && <Image style={styles.image} source={{ uri: imageURI }} />}
                             </View>
-                            <Input
-                                style={{ backgroundColor: 'white' }}
-                                multiline={true}
-                                maxLength={200}
-                                textStyle={{ minHeight: 64 }}
-                                onChangeText={setDescription}
-                                value={description}
-                            />
                         </View>
                     </TouchableWithoutFeedback>
                 </KeyboardAvoidingView>
