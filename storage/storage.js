@@ -1,6 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PRODUCTS } from './data/products';
-import { USERS } from './data/users';
 
 const KEY_USER = 'user' // key for users table
 

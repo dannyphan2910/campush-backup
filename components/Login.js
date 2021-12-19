@@ -21,34 +21,28 @@ export default function Login() {
         return null
     }
 
-    const handleButton = e => {
-        e.preventDefault()
+    const handleButton = () => {
         if (email) {
-            const username = email.substring(0, email.indexOf("@brandeis.edu"))
-            if (username.length > 0) {
-                // db.ref('name/[key]').set(object)
-                // db.ref('name/[key]').once('value', (snapshot) => {... snapshot.value()}, (err) => {...})
-                db.ref('users/' + username).once('value',
-                    (snapshot) => {
-                        if (!snapshot.exists()) {
-                            Alert.alert('No Brandeis user found with email: ' + email)
-                        } else {
-                            const user = snapshot.val()
+            db.collection('users').where('email', '==', email).limit(1).get()
+                .then((snapshot) => {
+                    if (snapshot.empty) {
+                        Alert.alert('No user found with email: ' + email)
+                    } else {
+                        let user = undefined
+                        snapshot.forEach((userSnapshot) => {
+                            user = userSnapshot.data()
+                        })
+                        if (user) {
                             storage.setCurrentUser(user)
                                 .then(() => {
                                     setCurrentUser(user)
                                     navigation.navigate('Main')
                                 })
                                 .catch(err => console.error(err))
+                            }
                         }
-                    },
-                    (err) => {
-                        console.error(err)
-                    }
-                )
-            } else {
-                Alert.alert('No Brandeis user found with email: ' + email)
-            }
+                    })
+                .catch(err => console.error(err))
         }
     }
 

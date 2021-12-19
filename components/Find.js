@@ -2,7 +2,7 @@ import { Input } from '@ui-kitten/components'
 import React, { useContext, useEffect, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View, Text, SafeAreaView, ScrollView, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native'
-import { GeneralHelper, UserHelper } from '../helper/helper';
+import { GeneralHelper } from '../helper/helper';
 import { db } from '../firebase';
 import { UserContext } from '../context/user_context';
 
@@ -15,25 +15,25 @@ export default function Find() {
     useEffect(() => {
         const getProducts = () => {
             if (currentUser && searchText && searchText.length >= 3) {
-                const username = UserHelper.getUsername(currentUser.email)
-                db.ref('products').on('value',
-                    (querySnapshot) => {
-                        if (querySnapshot.exists()) {
-                            let products = []
-                            querySnapshot.forEach((productSnapshot) => {
-                                if (!productSnapshot.hasChild('purchased_by') && productSnapshot.child('sold_by').val() !== username) {
-                                    const product = productSnapshot.val();
-                                    if (product.name.toLowerCase().includes(searchText.toLowerCase())) {
+                db.collection('products').get()
+                    .then(querySnapshot => {
+                            if (!querySnapshot.empty) {
+                                let products = []
+                                querySnapshot.forEach(productSnapshot => {
+                                    console.log(productSnapshot.get('name'))
+                                    if (!productSnapshot.get('purchased_by')
+                                        && productSnapshot.get('sold_by') !== currentUser.username
+                                        && productSnapshot.get('name').toLowerCase().includes(searchText.toLowerCase())) {
+                                        const product = productSnapshot.data();
                                         products.push(product)
                                     }
-                                }
-                            });
-                            setResults(products)
-                        } else {
-                            console.log('No products found')
-                        }
-                    }
-                )
+                                });
+                                setResults(products)
+                            } else {
+                                console.log('No products found')
+                            }
+                        })
+                    .catch(err => console.error(err))
             } else {
                 if (results.length > 0) {
                     setResults([])

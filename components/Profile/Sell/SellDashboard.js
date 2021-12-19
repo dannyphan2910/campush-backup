@@ -1,42 +1,47 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { GeneralHelper, UserHelper } from '../../../helper/helper';
-import { db } from '../../../firebase';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { Alert, Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { GeneralHelper } from '../../../helper/helper';
+import { db, firebaseStorage } from '../../../firebase';
 import { UserContext } from '../../../context/user_context';
+import { Swipeable } from 'react-native-gesture-handler';
+import { Feather } from '@expo/vector-icons'; 
+import firebase from "firebase";
 
-export default function SellDashboard() {
+export default function SellDashboard({ route }) {
     const { currentUser } = useContext(UserContext)
 
-    // console.log('SELL DASHBOARD: ' + JSON.stringify(currentUser))
     const [userProducts, setUserProducts] = useState([])
+    const [refresh, setRefresh] = useState(true)
 
+    const swipeRefs = useRef([])
+ 
     useEffect(() => {
         const getUserProducts = () => {
-            const username = UserHelper.getUsername(currentUser.email)
-            db.ref('users_products').child(username).child('active').on('value',
-                (snapshot) => {
-                    let productsFound = []
-                    if (snapshot.exists()) {
-                        const ids = Object.values(snapshot.val())
-                        db.ref('products').orderByChild('created_at').once('value',
-                            (querySnapshot) => {
-                                querySnapshot.forEach((productSnapshot) => {
-                                    if (ids.includes(productSnapshot.key)) {
-                                        productsFound.push(productSnapshot.val())
-                                    }
-                                });
-                                productsFound = productsFound.reverse()
+            if (currentUser) {
+                db.collection('users_products').doc(currentUser.username)
+                    .onSnapshot(snapshot => {
+                        if (snapshot.exists) {
+                            const activeProductsRefs = snapshot.get('active')
+                            const productPromises = activeProductsRefs.map((productRef) => {
+                                return productRef.get()
+                            })
+                            Promise.all(productPromises).then(productSnapshots => {
+                                const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data()).reverse()
                                 setUserProducts(productsFound)
-                            }
-                        )
-                    } else {
-                        console.log('No products found for username ' + username)
-                    }
-                }
-            )
+                            })
+                        } else {
+                            console.log('No active products found for username ' + currentUser.username)
+                        }
+                        setRefresh(false)
+                    })
+            }
         }
         getUserProducts()
-    }, [])
+    }, [route, refresh])
+
+    if (!currentUser) {
+        return null
+    }
 
     const noProductsView = (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -44,9 +49,87 @@ export default function SellDashboard() {
         </View>
     )
 
+    const renderRightActions = (progress, dragX) => {
+        const scale = dragX.interpolate({
+            inputRange: [-80, 0],
+            outputRange: [1, 0],
+            extrapolate: 'clamp',
+        })
+
+        return (
+          <TouchableOpacity style={styles.rightAction}>
+                <Animated.Text
+                    style={{
+                        color: 'white',
+                        paddingHorizontal: 20,
+                        fontWeight: '600',
+                        transform: [{ scale }]
+                    }}>
+                    <Feather name="trash-2" size={30} color="white" />
+                </Animated.Text>
+          </TouchableOpacity>
+        );
+    };
+
+    const handleDelete = (index) => {
+        const product = userProducts[index]
+
+        db.runTransaction((transaction) => {
+            const productRef = db.collection('products').doc(product.id)
+            transaction.delete(productRef)
+            firebaseStorage.refFromURL(product.thumbnail_url).delete()
+
+            const userProductsRef = db.collection('users_products').doc(currentUser.username)
+            transaction.update(userProductsRef, { active: firebase.firestore.FieldValue.arrayRemove(productRef) })
+
+            return Promise.resolve()
+        })
+        .then(() => {
+            Alert.alert('Remove product successfully')
+            setRefresh(true)
+        })
+        .catch(err => { Alert.alert('Data could not be removed: ' + err); console.error(err) })
+    }
+
+    const handleSwipeDelete = (index) => {
+        const product = userProducts[index]
+
+        Alert.alert(
+            'Are you sure?', 
+            'Please confirm your deletion of "' + product.name + '".',     
+            [
+                {
+                    text: "Cancel",
+                    onPress: () => swipeRefs.current[index].close(),
+                    style: "cancel",
+                },
+                {
+                    text: "Delete",
+                    onPress: () => handleDelete(index),
+                    style: "destructive",
+                },
+            ],
+            {
+                cancelable: true,
+            }
+        )
+    }
+
+    const productCards = GeneralHelper.getProductCardsLong(userProducts)
+    const productCardsWithDelete = productCards.map((card, index) => (
+        <Swipeable 
+            ref={ref => swipeRefs.current[index] = ref}
+            renderRightActions={renderRightActions}
+            onSwipeableRightOpen={() => handleSwipeDelete(index)}
+            key={userProducts[index].id}
+        >
+            {card}
+        </Swipeable>
+    ))
+
     const productsView = (
-        <ScrollView>
-            {GeneralHelper.getProductCardsLong(userProducts)}
+        <ScrollView refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
+            {productCardsWithDelete}
         </ScrollView>
     )
 
@@ -67,5 +150,12 @@ const styles = StyleSheet.create({
         flex: 1,
         flexDirection: 'column',
         backgroundColor: 'white'
+    },
+    rightAction: {
+        alignItems: 'center',
+        flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
+        backgroundColor: '#dd2c00',
+        flex: 1,
+        justifyContent: 'flex-end'
     }
 });

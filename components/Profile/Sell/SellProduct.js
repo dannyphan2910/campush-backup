@@ -3,9 +3,10 @@ import React, { useContext, useState } from 'react';
 import { Alert, Image, Keyboard, KeyboardAvoidingView, StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
 import { useNavigation } from '@react-navigation/core';
 import { db } from '../../../firebase';
-import { GeneralHelper, ImageHelper, UserHelper } from '../../../helper/helper';
+import { ImageHelper } from '../../../helper/helper';
 import { UserContext } from '../../../context/user_context';
 import CameraView from '../../CameraView'
+import firebase from "firebase";
 
 export default function SellProduct() {
     const { currentUser } = useContext(UserContext)
@@ -18,32 +19,49 @@ export default function SellProduct() {
     const [cameraOpen, setCameraOpen] = useState(false)
     const [imageURI, setImageURI] = useState()
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
+    const handleSubmit = () => {
         Keyboard.dismiss()
-        const id = GeneralHelper.getRandomID()
-        const username = UserHelper.getUsername(currentUser.email)
-        // upload photo to Firebase Storage
-        const url = await ImageHelper.uploadImageAsync(imageURI)
-        // upload the new product to Firebase Realtime Database
-        var product = {
-            id: id,
-            name: name,
-            description: description,
-            price: parseFloat(price),
-            // favorited_by: [],
-            thumbnail_url: url,
-            sold_by: username,
-            // purchased_by: null,
-            created_at: Date.now()
-        }
-        db.ref('products').child(id).set(product, err => {
-            if (err) {
-                Alert.alert('Data could not be saved: ' + err)
-            } else {
-                db.ref('users_products').child(username).child('active').push(id)
-                Alert.alert('Data saved successfully')
+
+        db.runTransaction(async (transaction) => {
+            const productRef = db.collection('products').doc(id)
+
+            // upload photo to Firebase Storage
+            const url = await ImageHelper.uploadImageAsync(imageURI)
+            // upload the new product to Firebase Realtime Database
+
+            const productsRef = db.collection('products').doc()
+            const id = productsRef.id
+            const product = {
+                id: id,
+                name: name,
+                description: description,
+                price: parseFloat(price),
+                // favorited_by: [],
+                thumbnail_url: url,
+                sold_by: currentUser.username,
+                // purchased_by: null,
+                created_at: firebase.firestore.FieldValue.serverTimestamp()
             }
+
+            const userProductsRef = db.collection('users_products').doc(currentUser.username)
+            return transaction.get(userProductsRef).then(snapshot => {
+                transaction.set(productRef, product)
+
+                if (!snapshot.exists) {
+                    transaction.set(userProductsRef, {
+                        active: []
+                    })
+                }
+                transaction.update(userProductsRef, { active: firebase.firestore.FieldValue.arrayUnion(productRef) })
+            })
+        })
+        .then(() => {
+            navigation.navigate('SellDashboard', { refresh: true })
+            Alert.alert('Data saved successfully')
+        })
+        .catch(err => { 
+            Alert.alert('Data could not be saved: ' + err)
+            console.error(err) 
         })
     }
 
@@ -85,7 +103,7 @@ export default function SellProduct() {
                     <Button
                         disabled={!(name && price && imageURI)}
                         style={styles.button}
-                        onPress={e => { handleSubmit(e); navigation.navigate('SellDashboard'); }}
+                        onPress={handleSubmit}
                         status='info'
                     >
                         Create Product

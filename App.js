@@ -20,6 +20,13 @@ import SoldList from './components/Profile/History/SoldList';
 import Product from './components/Product';
 import Find from './components/Find';
 import { LogBox } from 'react-native';
+import Payment from './components/Profile/Payment';
+import Account from './components/Profile/Account';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Cart from './components/Cart';
+import MessageDashboard from './components/Messaging/MessageDashboard';
+import MessageView from './components/Messaging/MessageView';
+
 LogBox.ignoreLogs(['Warning: ...']); // Ignore log notification by message
 LogBox.ignoreAllLogs();//Ignore all log notifications
 
@@ -35,24 +42,26 @@ function Main() {
           let iconName;
 
           if (route.name === 'Home') {
-            iconName = focused
-              ? 'home'
-              : 'home-outline';
-            return <Ionicons name={iconName} size={size} color={color} />;
+            iconName = focused ? 'home' : 'home-outline';
+            return <Ionicons name={iconName} size={size} color={color} style={{ marginTop: 10 }} />;
           } else if (route.name === 'Profile') {
             iconName = focused ? 'user-alt' : 'user';
-            return <FontAwesome5 name={iconName} size={size} color={color} />;
+            return <FontAwesome5 name={iconName} size={size} color={color} style={{ marginTop: 10 }} />;
           } else if (route.name === 'Find') {
             iconName = focused ? 'md-search-sharp' : 'md-search-outline';
-            return <Ionicons name={iconName} size={size} color={color} />;
+            return <Ionicons name={iconName} size={size} color={color} style={{ marginTop: 10 }} />;
+          } else if (route.name === 'Cart') {
+            iconName = focused ? 'md-cart' : 'md-cart-outline';
+            return <Ionicons name={iconName} size={size} color={color} style={{ marginTop: 10 }} />;
           }
             return null;
         },
       })}>
 
-        <Tab.Screen name="Home" options={{ header: props => null }} component={Home} />
-        <Tab.Screen name="Find" options={{ header: props => null }} component={Find}   />
-        <Tab.Screen name="Profile" options={{ header: props => null }} component={Profile} />
+        <Tab.Screen name="Home" options={{ header: props => null, title: '' }} component={Home} />
+        <Tab.Screen name="Find" options={{ header: props => null, title: '' }} component={Find}   />
+        <Tab.Screen name="Cart" options={{ header: props => null, title: '' }} component={Cart} />
+        <Tab.Screen name="Profile" options={{ header: props => null, title: '' }} component={Profile} />
     </Tab.Navigator>
    </UserContext.Provider>
   );
@@ -79,29 +88,34 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null)
 
   useEffect(() => {
-    function checkStorageForUser() {
-      storage.getCurrentUser()
-        .then(user => { setCurrentUser(user) })
-        .catch(err => console.error(err))
-    }
-    checkStorageForUser()
+    storage.getCurrentUser()
+      .then(user => setCurrentUser(user))
+      .catch(err => console.error(err))
   }, [])
 
+
+
   return (
+    <SafeAreaProvider>
     <UserContext.Provider value={{ currentUser, setCurrentUser }}>
       <ApplicationProvider {...eva} theme={eva.light}>
         <NavigationContainer>
           <Stack.Navigator>
             <Stack.Screen name="Login" options={{ header: props => null }} component={Login} />
             <Stack.Screen name="Main" options={{ header: props => null }} component={Main} />
-            <Stack.Screen name="SellDashboard" options={{ headerTitle: props => <HeaderSell {...props} />}} component={SellDashboard} />
-            <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: '' }} component={SellProduct} />
-            <Stack.Screen name="History" options={{ headerBackTitle: '', headerTitle: '' }} component={History} />
-            <Stack.Screen name="About" options={{ headerBackTitle: '', headerTitle: '' }} component={About} />
+            <Stack.Screen name="Account" options={{ headerBackTitle: '', headerTitle: 'Account' }} component={Account} />
+            <Stack.Screen name="Payment" options={{ headerBackTitle: '', headerTitle: 'Payment' }} component={Payment} />
+            <Stack.Screen name="SellDashboard" options={{ headerBackTitle: '', headerTitle: 'My Products', headerRight: props => <HeaderSell {...props} /> }} component={SellDashboard} />
+            <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: 'New Product' }} component={SellProduct} />
+            <Stack.Screen name="History" options={{ headerBackTitle: '', headerTitle: 'History' }} component={History} />
+            <Stack.Screen name="About" options={{ headerBackTitle: '', headerTitle: 'About Us' }} component={About} />
             <Stack.Screen name="Product" options={{ headerBackTitle: '', headerTitle: '' }} component={Product} />
+            <Stack.Screen name="Messages" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageDashboard} />
+            <Stack.Screen name="Chat" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageView} />
           </Stack.Navigator>
         </NavigationContainer>
       </ApplicationProvider>
     </UserContext.Provider>
+    </SafeAreaProvider>
   );
 }

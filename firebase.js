@@ -22,7 +22,7 @@ if (!firebase.apps.length) {
   app = firebase.app()
 }
 
-const db = app.database();
+const db = app.firestore();
 const firebaseStorage = app.storage();
 
 export { db, firebaseStorage }

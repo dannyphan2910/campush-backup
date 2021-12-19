@@ -1,8 +1,8 @@
 import { useNavigation } from "@react-navigation/core";
 import { firebaseStorage } from "../firebase";
 import React from 'react';
-import { Card } from "@ui-kitten/components";
-import { Image, Text, View } from "react-native";
+import { Card, Text } from "@ui-kitten/components";
+import { Image, View } from "react-native";
 
 export const UserHelper = {
     getUsername: (email) => email.substring(0, email.indexOf("@brandeis.edu"))
@@ -19,24 +19,22 @@ export const GeneralHelper = {
         return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
     },
 
-    getProductCardsLong: (products) => {
+    getProductCardsLong: (products, styles={}) => {
         const navigation = useNavigation()
 
-        return products.map((product, index) => {
-            return (
-                <Card style={{ margin: 5 }} key={product.id} onPress={() => navigation.navigate('Product', { id: product.id })}>
-                    <View style={{ flex: 1, flexDirection: 'row' }}>
-                        <View style={{ flex: 2, justifyContent: 'center' }}>
-                            <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_url }} />
-                        </View>
-                        <View style={{ flex: 3, justifyContent: 'space-between' }}>
-                            <Text>Name: {product.name}</Text>
-                            <Text>Price: ${product.price}</Text>
-                        </View>
+        return products.map((product) => (
+            <Card style={[{ margin: 5 }, styles]} key={product.id} onPress={() => navigation.navigate('Product', { id: product.id })}>
+                <View style={{ flex: 1, flexDirection: 'row' }}>
+                    <View style={{ flex: 2, justifyContent: 'center' }}>
+                        <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_url }} />
                     </View>
-                </Card>
-            );
-        })
+                    <View style={{ flex: 3, justifyContent: 'space-between' }}>
+                        <Text><Text category='s1'>Name: </Text>{product.name}</Text>
+                        <Text><Text category='s1'>Price: </Text>${product.price}</Text>
+                    </View>
+                </View>
+            </Card>
+        ))
     }
 }
 
