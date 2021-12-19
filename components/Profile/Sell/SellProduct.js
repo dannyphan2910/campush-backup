@@ -23,8 +23,6 @@ export default function SellProduct() {
         Keyboard.dismiss()
 
         db.runTransaction(async (transaction) => {
-            const productRef = db.collection('products').doc(id)
-
             // upload photo to Firebase Storage
             const url = await ImageHelper.uploadImageAsync(imageURI)
             // upload the new product to Firebase Realtime Database
@@ -42,7 +40,8 @@ export default function SellProduct() {
                 // purchased_by: null,
                 created_at: firebase.firestore.FieldValue.serverTimestamp()
             }
-
+            
+            const productRef = db.collection('products').doc(id)
             const userProductsRef = db.collection('users_products').doc(currentUser.username)
             return transaction.get(userProductsRef).then(snapshot => {
                 transaction.set(productRef, product)

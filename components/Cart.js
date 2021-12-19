@@ -97,23 +97,7 @@ export default function Cart({ route }) {
             <View style={{ flex: 10 }}>
                 {cartProductCardsWithRemove}
             </View>
-            <View style={{ flex: 1}}>
-                {
-                    editMode ? 
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                        <Feather name="check" size={30} color="black" style={[styles.buttonStyle, { marginRight: 15, backgroundColor: '#C6D57E' }]} onPress={handleEditSave} />
-                        <MaterialCommunityIcons name="cancel" size={30} color="black" style={[styles.buttonStyle, { marginLeft: 15, backgroundColor: '#D57E7E' }]} onPress={() => setEditMode(false)} />
-                    </View> :
-                    <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 20, paddingTop: 10, borderTopColor: 'black', borderTopWidth: 0.4 }}>
-                        <View style={{flex: 1, justifyContent: 'center'}}>
-                            <Text style={styles.productInfoPrice}>$ {product.price}</Text>
-                        </View>
-                        <View style={{flex: 1, alignItems: 'flex-end', justifyContent: 'center'}}>
-                            {getButton()}
-                        </View>
-                    </View>
-                }
-                
+            <View style={{ flex: 1}}>                
             </View>
 
         </ScrollView>
