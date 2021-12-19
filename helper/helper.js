@@ -3,6 +3,7 @@ import { firebaseStorage } from "../firebase";
 import React from 'react';
 import { Card, Text } from "@ui-kitten/components";
 import { Image, View } from "react-native";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 
 export const UserHelper = {
     getUsername: (email) => email.substring(0, email.indexOf("@brandeis.edu"))
@@ -30,12 +31,15 @@ export const GeneralHelper = {
                     </View>
                     <View style={{ flex: 3, justifyContent: 'space-between' }}>
                         <Text><Text category='s1'>Name: </Text>{product.name}</Text>
-                        <Text><Text category='s1'>Price: </Text>${product.price}</Text>
+                        <Text><Text category='s1'>Price: </Text>${GeneralHelper.numberWithCommas(product.price)}</Text>
                     </View>
                 </View>
             </Card>
         ))
-    }
+    },
+
+    numberWithCommas: (x) => x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","),
+    roundedBy2: (num) => Math.round((num + Number.EPSILON) * 100) / 100,
 }
 
 export const ImageHelper = {
@@ -63,5 +67,29 @@ export const ImageHelper = {
         blob.close();
 
         return await fileRef.getDownloadURL();
+    },
+
+    compressImage: async (uri) => {
+        const manipResult = await manipulateAsync(
+            uri,
+            [{ resize: { height: 500, width: 500 } }],
+            { compress: 0.8, format: SaveFormat.PNG }
+          );
+        return manipResult.uri
+    }
+}
+
+export const CartHelper = {
+
+    getTotalCost: (products) => {
+        const sum = products.reduce(( sum, { price } ) => sum + price , 0)
+        const subtotal = GeneralHelper.roundedBy2(sum)
+        const fees = GeneralHelper.roundedBy2(sum * 0.075)
+    
+        return {
+            subtotal: GeneralHelper.numberWithCommas(subtotal),
+            fees: GeneralHelper.numberWithCommas(fees),
+            total: GeneralHelper.numberWithCommas(GeneralHelper.roundedBy2(subtotal + fees)),
+        }
     }
 }

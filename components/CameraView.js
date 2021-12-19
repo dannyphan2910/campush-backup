@@ -6,6 +6,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Dimensions, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { ImageHelper } from '../helper/helper';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -44,7 +45,8 @@ export default function CameraView({ closeCamera, setImageURI }) {
 
             console.log(photo)
 
-            compressImageAndSave(photo.uri)
+            const uri = await ImageHelper.compressImage(photo.uri);
+            setImageURI(uri);
             closeCamera()
         }
     }
@@ -60,19 +62,13 @@ export default function CameraView({ closeCamera, setImageURI }) {
         console.log(result);
 
         if (!result.cancelled) {
-            compressImageAndSave(result.uri);
+            const uri = await ImageHelper.compressImage(result.uri);
+            setImageURI(uri);
             closeCamera()
         }
     };
 
-    const compressImageAndSave = async (uri) => {
-        const manipResult = await manipulateAsync(
-            uri,
-            [{ resize: { height: 500, width: 500 } }],
-            { compress: 0.8, format: SaveFormat.PNG }
-          );
-        setImageURI(manipResult.uri);
-    }
+
 
     return (
         <SafeAreaView style={{ flex: 1, width: windowWidth, height: windowHeight, backgroundColor: 'black' }}>

@@ -5,10 +5,13 @@ import { db, firebaseStorage } from '../../../firebase';
 import { UserContext } from '../../../context/user_context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons'; 
+import { useNavigation } from "@react-navigation/core";
 import firebase from "firebase";
 
 export default function SellDashboard({ route }) {
     const { currentUser } = useContext(UserContext)
+
+    const navigation = useNavigation()
 
     const [userProducts, setUserProducts] = useState([])
     const [refresh, setRefresh] = useState(true)
@@ -22,13 +25,15 @@ export default function SellDashboard({ route }) {
                     .onSnapshot(snapshot => {
                         if (snapshot.exists) {
                             const activeProductsRefs = snapshot.get('active')
-                            const productPromises = activeProductsRefs.map((productRef) => {
-                                return productRef.get()
-                            })
-                            Promise.all(productPromises).then(productSnapshots => {
-                                const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data()).reverse()
-                                setUserProducts(productsFound)
-                            })
+                            if (activeProductsRefs) {
+                                const productPromises = activeProductsRefs.map((productRef) => {
+                                    return productRef.get()
+                                })
+                                Promise.all(productPromises).then(productSnapshots => {
+                                    const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data()).reverse()
+                                    setUserProducts(productsFound)
+                                })
+                            }
                         } else {
                             console.log('No active products found for username ' + currentUser.username)
                         }
@@ -75,18 +80,29 @@ export default function SellDashboard({ route }) {
         const product = userProducts[index]
 
         db.runTransaction((transaction) => {
-            const productRef = db.collection('products').doc(product.id)
-            transaction.delete(productRef)
-            firebaseStorage.refFromURL(product.thumbnail_url).delete()
-
             const userProductsRef = db.collection('users_products').doc(currentUser.username)
-            transaction.update(userProductsRef, { active: firebase.firestore.FieldValue.arrayRemove(productRef) })
+            const productRef = db.collection('products').doc(product.id)
 
-            return Promise.resolve()
+            return db.collection('users_carts').where('products', 'array-contains', productRef).get().then(querySnapshot => {
+                // remove this product from the carts of ALL users
+                if (!querySnapshot.empty) {
+                    querySnapshot.docs.forEach(ref => {
+                        const cartRef = db.collection('users_carts').doc(ref.id)
+                        console.log(cartRef.path)
+                        transaction.update(cartRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
+                    })
+                }
+                // remove this product from the list of ALL products
+                transaction.delete(productRef)
+                // remove this product from the list of ACTIVE products of THIS user
+                transaction.update(userProductsRef, { active: firebase.firestore.FieldValue.arrayRemove(productRef) })      
+                // remove the attached thumbnail images from the storage
+                firebaseStorage.refFromURL(product.thumbnail_url).delete()
+            })
         })
         .then(() => {
             Alert.alert('Remove product successfully')
-            setRefresh(true)
+            navigation.navigate('Profile')
         })
         .catch(err => { Alert.alert('Data could not be removed: ' + err); console.error(err) })
     }

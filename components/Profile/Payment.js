@@ -20,56 +20,56 @@ export default function Payment() {
     const [postalCode, setPostalCode] = useState('')
 
     useEffect(() => {
-        initStripe({
-            publishableKey: 'pk_test_51K78wDBXa70L4pYtnzSfk0aVYDvTSPNvuNtvWj45i2MeGVs4HrJwwwOVnbLxP3Um8MC5buAiLmWeh2zGH74GDkIP00wXIaquEa',
-            urlScheme: Constants.appOwnership === 'expo' ? Linking.createURL('/--/') : Linking.createURL(''),
-        });
+        // initStripe({
+        //     publishableKey: 'pk_test_51K78wDBXa70L4pYtnzSfk0aVYDvTSPNvuNtvWj45i2MeGVs4HrJwwwOVnbLxP3Um8MC5buAiLmWeh2zGH74GDkIP00wXIaquEa',
+        //     urlScheme: Constants.appOwnership === 'expo' ? Linking.createURL('/--/') : Linking.createURL(''),
+        // });
     }, [])
 
     const handleSave = async () => {
-        const createSetupIntentOnBackend = async () => {
-            const response = await fetch(`https://api.stripe.com/v1/create-setup-intent`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ email: currentUser.email }),
-            });
-            const { clientSecret } = await response.json();
+        // const createSetupIntentOnBackend = async () => {
+        //     const response = await fetch(`https://api.stripe.com/v1/create-setup-intent`, {
+        //       method: 'POST',
+        //       headers: {
+        //         'Content-Type': 'application/json',
+        //       },
+        //       body: JSON.stringify({ email: currentUser.email }),
+        //     });
+        //     const { clientSecret } = await response.json();
         
-            return clientSecret;
-          };
-        // 1. fetch Intent Client Secret from backend
-        const clientSecret = await createSetupIntentOnBackend();  
-        // 2. Gather customer billing information (ex. email)
-        const billingDetails = {
-            email: currentUser.email,
-            phone: '+17817809809',
-            addressCity: city,
-            addressCountry: country,
-            addressLine1: address,
-            addressPostalCode: postalCode,
-        };      
-        // 3. Confirm setup intent
-        const { error, setupIntent: setupIntentResult } = await confirmSetupIntent(
-            clientSecret,
-            {
-                type: 'Card',
-                billingDetails,
-            }
-        );
+        //     return clientSecret;
+        //   };
+        // // 1. fetch Intent Client Secret from backend
+        // const clientSecret = await createSetupIntentOnBackend();  
+        // // 2. Gather customer billing information (ex. email)
+        // const billingDetails = {
+        //     email: currentUser.email,
+        //     phone: '+17817809809',
+        //     addressCity: city,
+        //     addressCountry: country,
+        //     addressLine1: address,
+        //     addressPostalCode: postalCode,
+        // };      
+        // // 3. Confirm setup intent
+        // const { error, setupIntent: setupIntentResult } = await confirmSetupIntent(
+        //     clientSecret,
+        //     {
+        //         type: 'Card',
+        //         billingDetails,
+        //     }
+        // );
     
-        if (error) {
-            Alert.alert(`Error code: ${error.code}`, error.message);
-            console.log('Setup intent confirmation error', error.message);
-        } else if (setupIntentResult) {
-            Alert.alert(
-                'Success',
-                `Setup intent created. Intent status: ${setupIntentResult.status}`
-            );
+        // if (error) {
+        //     Alert.alert(`Error code: ${error.code}`, error.message);
+        //     console.log('Setup intent confirmation error', error.message);
+        // } else if (setupIntentResult) {
+        //     Alert.alert(
+        //         'Success',
+        //         `Setup intent created. Intent status: ${setupIntentResult.status}`
+        //     );
     
-            setSetupIntent(setupIntentResult);
-        }
+        //     setSetupIntent(setupIntentResult);
+        // }
     }
 
     return (

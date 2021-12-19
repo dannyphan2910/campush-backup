@@ -20,7 +20,6 @@ export default function Find() {
                             if (!querySnapshot.empty) {
                                 let products = []
                                 querySnapshot.forEach(productSnapshot => {
-                                    console.log(productSnapshot.get('name'))
                                     if (!productSnapshot.get('purchased_by')
                                         && productSnapshot.get('sold_by') !== currentUser.username
                                         && productSnapshot.get('name').toLowerCase().includes(searchText.toLowerCase())) {

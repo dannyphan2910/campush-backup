@@ -12,9 +12,9 @@ export default function Profile() {
     const { currentUser, setCurrentUser } = useContext(UserContext)
     const navigation = useNavigation();
 
-    const [purchasedCount, setPurchasedCount] = useState(-1)
-    const [sellCount, setSellCount] = useState(-1)
-    const [soldCount, setSoldCount] = useState(-1)
+    const [purchasedCount, setPurchasedCount] = useState(0)
+    const [sellCount, setSellCount] = useState(0)
+    const [soldCount, setSoldCount] = useState(0)
 
     useEffect(() => {
         const getCount = () => {
@@ -23,23 +23,18 @@ export default function Profile() {
                     .onSnapshot(snapshot => {
                         if (snapshot.exists) {
                             const activeProductsRefs = snapshot.get('active')
-                            const inactiveProductsRefs = snapshot.get('inactive')
+                            if (activeProductsRefs) setSellCount(activeProductsRefs.length)
 
-                            setSellCount(activeProductsRefs ? activeProductsRefs.length : 0)
-                            setSoldCount(inactiveProductsRefs ? inactiveProductsRefs.length : 0)
-                        } else {
-                            setSellCount(0)
-                            setSoldCount(0)
+                            const inactiveProductsRefs = snapshot.get('inactive')
+                            if (inactiveProductsRefs) setSoldCount(inactiveProductsRefs.length)
                         }
                     })
 
                 db.collection('users_purchases').doc(currentUser.username)
                     .onSnapshot(snapshot => {
                         if (snapshot.exists) {
-                            const purchasesRef = snapshot.data()
-                            setPurchasedCount(purchasesRef.length)
-                        } else {
-                            setPurchasedCount(0)
+                            const purchasesRef = snapshot.get('products')
+                            if (purchasesRef) setPurchasedCount(purchasesRef.length)
                         }
                     })
             }
@@ -92,6 +87,11 @@ export default function Profile() {
                         title={() => <Text style={{ paddingLeft: 10, fontSize: 20, fontWeight: '500' }}>Payment</Text>}
                         onPress={() => {
                             navigation.navigate('Payment')
+                        }}/>
+                    <MenuItem
+                        title={() => <Text style={{ paddingLeft: 10, fontSize: 20, fontWeight: '500' }}>Favorites</Text>}
+                        onPress={() => {
+                            navigation.navigate('Favorites')
                         }}/>
                     <MenuItem
                         title={() => <Text style={{ paddingLeft: 10, fontSize: 20, fontWeight: '500' }}>Sell</Text>}

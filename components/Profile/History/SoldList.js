@@ -17,13 +17,15 @@ export default function SoldList() {
                     .then(snapshot => {
                         if (snapshot.exists) {
                             const inactiveProductsRefs = snapshot.get('inactive')
-                            const productPromises = inactiveProductsRefs.map((productRef) => {
-                                return productRef.get()
-                            })
-                            Promise.all(productPromises).then(productSnapshots => {
-                                const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data()).reverse()
-                                setSoldProducts(productsFound)
-                            })
+                            if (inactiveProductsRefs) {
+                                const productPromises = inactiveProductsRefs.map((productRef) => {
+                                    return productRef.get()
+                                })
+                                Promise.all(productPromises).then(productSnapshots => {
+                                    const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data()).reverse()
+                                    setSoldProducts(productsFound)
+                                })
+                            }
                         } else {
                             console.log('No inactive products found for username ' + currentUser.username)
                         }

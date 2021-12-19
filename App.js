@@ -8,7 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Profile from './components/Profile';
 import About from './components/Profile/About';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import Login from './components/Login';
 import storage from './storage/storage';
 import SellDashboard from './components/Profile/Sell/SellDashboard';
@@ -22,6 +22,7 @@ import Find from './components/Find';
 import { LogBox } from 'react-native';
 import Payment from './components/Profile/Payment';
 import Account from './components/Profile/Account';
+import Favorites from './components/Profile/Favorites';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Cart from './components/Cart';
 import MessageDashboard from './components/Messaging/MessageDashboard';
@@ -103,14 +104,18 @@ export default function App() {
             <Stack.Navigator>
               <Stack.Screen name="Login" options={{ header: props => null }} component={Login} />
               <Stack.Screen name="Main" options={{ header: props => null }} component={Main} />
-              <Stack.Screen name="Account" options={{ headerBackTitle: '', headerTitle: 'Account' }} component={Account} />
-              <Stack.Screen name="Payment" options={{ headerBackTitle: '', headerTitle: 'Payment' }} component={Payment} />
+
+              <Stack.Screen name="Account" options={{ headerBackTitle: '', headerTitle: 'My Account' }} component={Account} />
+              <Stack.Screen name="Payment" options={{ headerBackTitle: '', headerTitle: 'My Payment' }} component={Payment} />
+              <Stack.Screen name="Favorites" options={{ headerBackTitle: '', headerTitle: 'My Favorites' }} component={Favorites} />
               <Stack.Screen name="SellDashboard" options={{ headerBackTitle: '', headerTitle: 'My Products', headerRight: props => <HeaderSell {...props} /> }} component={SellDashboard} />
-              <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: 'New Product' }} component={SellProduct} />
-              <Stack.Screen name="History" options={{ headerBackTitle: '', headerTitle: 'History' }} component={History} />
+              <Stack.Screen name="History" options={{ headerBackTitle: '', headerTitle: 'My History' }} component={History} />
               <Stack.Screen name="About" options={{ headerBackTitle: '', headerTitle: 'About Us' }} component={About} />
+
+              <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: 'New Product' }} component={SellProduct} />
               <Stack.Screen name="Product" options={{ headerBackTitle: '', headerTitle: '' }} component={Product} />
-              <Stack.Screen name="Messages" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageDashboard} />
+
+              <Stack.Screen name="Inbox" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageDashboard} />
               <Stack.Screen name="Chat" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageView} />
             </Stack.Navigator>
           </NavigationContainer>

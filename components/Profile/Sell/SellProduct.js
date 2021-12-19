@@ -34,9 +34,9 @@ export default function SellProduct() {
                 name: name,
                 description: description,
                 price: parseFloat(price),
-                // favorited_by: [],
+                favorited_by: [],
                 thumbnail_url: url,
-                sold_by: currentUser.username,
+                sold_by: db.collection('users').doc(currentUser.username),
                 // purchased_by: null,
                 created_at: firebase.firestore.FieldValue.serverTimestamp()
             }

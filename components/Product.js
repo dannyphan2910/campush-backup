@@ -1,12 +1,12 @@
 import { useNavigation } from '@react-navigation/core';
-import { Button, Divider, Input, Modal } from '@ui-kitten/components';
+import { Button, Divider, Input, Modal, Text } from '@ui-kitten/components';
 import React, { useContext, useEffect, useState } from 'react'
-import { Alert, Dimensions, Image, Keyboard, KeyboardAvoidingView, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
+import { Alert, Dimensions, Image, Keyboard, KeyboardAvoidingView, RefreshControl, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
 import { UserContext } from '../context/user_context';
 import { db, firebaseStorage } from '../firebase';
-import { ImageHelper } from '../helper/helper';
+import { GeneralHelper, ImageHelper } from '../helper/helper';
 import CameraView from './CameraView';
-import { FontAwesome, Feather, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
+import { FontAwesome, Feather, MaterialCommunityIcons, AntDesign, Ionicons } from '@expo/vector-icons';
 import firebase from "firebase";
 
 const windowWidth = Dimensions.get('window').width;
@@ -18,6 +18,9 @@ export default function Product({ route }) {
     const navigation = useNavigation()
 
     const [product, setProduct] = useState()
+    const [isFavorited, setIsFavorited] = useState(false)
+    const [numInCart, setNumInCart] = useState(0) 
+    const [isInCart, setIsInCart] = useState(false)
 
     const [editMode, setEditMode] = useState(false)
     const [name, setName] = useState("")
@@ -31,8 +34,8 @@ export default function Product({ route }) {
     useEffect(() => {
         const getProduct = () => {
             if (id && currentUser) {
-                db.collection('products').doc(id).get()
-                    .then((snapshot) => {
+                const productRef = db.collection('products').doc(id)
+                productRef.get().then((snapshot) => {
                         if (snapshot.exists) {
                             const product = snapshot.data()
                             setProduct(product)
@@ -40,9 +43,33 @@ export default function Product({ route }) {
                             setDescription(product.description)
                             setPrice(product.price.toString())
                             setImageURI(product.thumbnail_url)
-                            setRefresh(false)
+                            const favorited = product.favorited_by
+                                .map(userRef => userRef.id)
+                                .includes(currentUser.username)
+                            setIsFavorited(favorited)
                         } else {
                             console.log('No product found for id ' + id)
+                        }
+                        setRefresh(false)
+                    })
+
+                db.collection('users_carts').where('products', 'array-contains', productRef).get()
+                    .then(snapshot => {
+                        if (!snapshot.empty) {
+                            setNumInCart(snapshot.size)
+                        }
+                    })
+
+                db.collection('users_carts').doc(currentUser.username).get()
+                    .then(snapshot => {
+                        if (snapshot.exists) {
+                            const productsRef = snapshot.get('products')
+                            if (productsRef) {
+                                const productIds = productsRef.map(ref => ref.id)
+                                if (productIds.includes(id)) {
+                                    setIsInCart(true)
+                                } 
+                            }
                         }
                     })
             }
@@ -56,33 +83,7 @@ export default function Product({ route }) {
 
     const handleEdit = () => setEditMode(true)
 
-    const handleBuy = () => {
-        // const updates = {
-        //     purchased_by: currentUser.username
-        // }
-        // db.ref('products').child(id).update(updates, err => {
-        //     if (err) {
-        //         Alert.alert('Purchase unsuccessful: ' + err)
-        //     } else {
-        //         db.ref('users_products').child(product.sold_by).child('active').orderByValue().equalTo(id).once('value',
-        //             (snapshot) => {
-        //                 if (snapshot.exists()) {
-        //                     const key = Object.keys(snapshot.val())[0]
-        //                     db.ref('users_products').child(product.sold_by).child('active').child(key).remove(err => {
-        //                         if (!err) {
-        //                             db.ref('users_products').child(product.sold_by).child('inactive').push(id)
-        //                             db.ref('users_purchases').child(currentUser.username).push(id)
-        //                             Alert.alert('Purchase successful')
-        //                             navigation.navigate('Home')
-        //                         } else {
-        //                             console.log('No linking with users_products with id ' + id)
-        //                         }
-        //                     })
-        //                 }
-        //             }
-        //         )
-        //     }
-        // })
+    const handleAddToCart = () => {
         db.runTransaction((transaction) => {
             const productRef = db.collection('products').doc(id)
 
@@ -100,7 +101,46 @@ export default function Product({ route }) {
             Alert.alert('Added to Cart')
             navigation.navigate('Cart', { refresh: true })
         }).catch(err => console.error(err))
+    }
 
+    const handleFavorite = async () => {
+        db.runTransaction((transaction) => {
+            const productRef = db.collection('products').doc(id)
+            const userRef = db.collection('users').doc(currentUser.username)
+
+            const userFavoritesRef = db.collection('users_favorites').doc(currentUser.username)
+
+            const addFavorite = () => {
+                transaction.update(userFavoritesRef, { products: firebase.firestore.FieldValue.arrayUnion(productRef) })
+                    .update(productRef, { favorited_by: firebase.firestore.FieldValue.arrayUnion(userRef) })
+            }
+
+            const removeFavorite = () => {
+                transaction.update(userFavoritesRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
+                    .update(productRef, { favorited_by: firebase.firestore.FieldValue.arrayRemove(userRef) })
+            }
+
+            return transaction.get(userFavoritesRef).then(snapshot => {
+                if (!snapshot.exists || !snapshot.get('products')) {
+                    transaction.set(userFavoritesRef, {
+                        products: []
+                    })
+                    addFavorite()
+                } else {
+                    const productsRef = snapshot.get('products')
+                    if (productRef) {
+                        const productIds = productsRef.map(ref => ref.id)
+                        if (productIds.includes(id)) {
+                            removeFavorite()
+                        } else {
+                            addFavorite()
+                        }
+                    }
+                }
+            })
+        })
+        .then(() => setRefresh(true))
+        .catch(err => console.error(err))
     }
 
     const handleEditSave = async () => {
@@ -121,14 +161,16 @@ export default function Product({ route }) {
     }
 
     const getButton = () => {
-        if (product.purchased_by) {
-            return <Button style={{ width: '50%', borderWidth: 0, borderRadius: 0 }} disabled>SOLD</Button>
-        } else if (product.sold_by === currentUser.username) {
+        if (isInCart) {
+            return <Button style={styles.actionButtonStyle} onPress={() => navigation.navigate('Cart')}>IN CART</Button>
+        } else if (product.purchased_by) {
+            return <Button style={[styles.actionButtonStyle, { backgroundColor: 'lightgray' }]} disabled>SOLD</Button>
+        } else if (product.sold_by.id === currentUser.username) {
             if (!editMode) {
-                return <Button style={{ width: '50%', backgroundColor: 'black', borderWidth: 0, borderRadius: 0 }} onPress={handleEdit}>EDIT</Button>
+                return <Button style={styles.actionButtonStyle} onPress={handleEdit}>EDIT</Button>
             }
         } else {
-            return <Button style={{ width: '50%', backgroundColor: 'black', borderWidth: 0, borderRadius: 0 }} onPress={handleBuy}>BUY</Button>
+            return <Button style={styles.actionButtonStyle} onPress={handleAddToCart}>ADD TO CART</Button>
         }
     }
 
@@ -136,9 +178,18 @@ export default function Product({ route }) {
         if (product) {
             const params = {
                 productId: product.id,
-                sellerUsername: product.sold_by
+                sellerUsername: product.sold_by.id
             }
             navigation.navigate('Chat', params)
+        }
+    }
+
+    const goToInboxFiltered = () => {
+        if (product) {
+            const params = {
+                productId: product.id,
+            }
+            navigation.navigate('Inbox', params)
         }
     }
 
@@ -147,25 +198,29 @@ export default function Product({ route }) {
             return (
                 <ScrollView style={{ paddingHorizontal: 20 }} refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
                     <Image style={{ width: windowWidth, height: windowWidth, alignSelf: 'center' }} source={{ uri: product.thumbnail_url }} />
-                    <View style={{ paddingTop: 10}}>
+                    <View style={{ paddingTop: 10 }}>
                         <View style={{flexDirection: 'row',}}>
                             <View style={{flex: 5}}>
                                 <Text style={styles.productInfoTitle}>{product.name}</Text>
                             </View>
-                            <View style={{flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
-                                <Text>53</Text>
-                                <FontAwesome name="heart-o" size={24} color="black" style={{marginLeft: 10}}/>
+                            <View style={{flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center'}}>
+                                <Text>{product.favorited_by.length}</Text>
+                                {
+                                    isFavorited ? 
+                                    <FontAwesome name="heart" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} /> :
+                                    <FontAwesome name="heart-o" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} />
+                                }
                             </View>
                         </View>
-                        <Divider style={{ color: 'black', marginVertical: 20}} />
+                        <Divider style={{ color: 'black', marginVertical: 20 }} />
                         <View style={{ flexDirection: 'row' }}>
                             <View style={{ flex: 5 }}>
-                                <Text style={styles.productSoldBy}>{product.sold_by}</Text>
+                                <Text style={styles.productSoldBy}>{product.sold_by.id}</Text>
                             </View>
                             <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                 {
-                                    product.sold_by === currentUser.username ? 
-                                    <View /> :
+                                    product.sold_by.id === currentUser.username ? 
+                                    <Feather name="inbox" size={24} color="black" onPress={goToInboxFiltered} /> :
                                     <AntDesign name="message1" size={24} color="black" onPress={goToChat} />
                                 }
                             </View>
@@ -191,7 +246,7 @@ export default function Product({ route }) {
                                 keyboardType="numeric"
                                 accessoryLeft={() => <Text>$</Text>}
                             />
-                            <Text style={styles.productSoldBy}>sold by: {product.sold_by}</Text>
+                            <Text style={styles.productSoldBy}>sold by: {product.sold_by.id}</Text>
                             <Divider style={{ color: 'black' }} />
                             <Text style={{padding: 15, paddingBottom: 20, fontSize: 18, fontWeight: '500'}}>Product Detail</Text>
                             <Input
@@ -224,6 +279,10 @@ export default function Product({ route }) {
 
     return (
         <SafeAreaView style={styles.container}>
+            <TouchableOpacity style={styles.floatingBtn}> 
+                <Text style={{ marginRight: 8 }}>{numInCart}</Text>
+                <Ionicons name="eye-outline" size={24} color="black" />
+            </TouchableOpacity>
             <View style={{ flex: 10 }}>
                 {getView()}
             </View>
@@ -236,9 +295,9 @@ export default function Product({ route }) {
                     </View> :
                     <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 20, paddingTop: 10, borderTopColor: 'black', borderTopWidth: 0.4 }}>
                         <View style={{flex: 1, justifyContent: 'center'}}>
-                            <Text style={styles.productInfoPrice}>$ {product.price}</Text>
+                            <Text style={styles.productInfoPrice}>${GeneralHelper.numberWithCommas(product.price)}</Text>
                         </View>
-                        <View style={{flex: 1, alignItems: 'flex-end', justifyContent: 'center'}}>
+                        <View style={{ flex: 1, alignSelf: 'center', justifyContent: 'center' }}>
                             {getButton()}
                         </View>
                     </View>
@@ -289,4 +348,24 @@ const styles = StyleSheet.create({
         paddingTop: 15, 
         overflow:'hidden'
     },
+    floatingBtn: {                      
+        position: 'absolute',                                         
+        top: 10,                                                    
+        right: 10, 
+        backgroundColor: 'white',
+        borderRadius: 25,
+        borderWidth: 0.5,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        alignSelf: 'center'
+    },
+    actionButtonStyle: { 
+        alignSelf: 'flex-end',
+        backgroundColor: 'black', 
+        borderWidth: 0, 
+        borderRadius: 0 
+    }
 })

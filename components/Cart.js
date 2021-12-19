@@ -1,14 +1,18 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useNavigation } from '@react-navigation/core';
+import { Alert, Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { UserContext } from '../context/user_context'
 import { db } from '../firebase'
-import { GeneralHelper } from '../helper/helper'
+import { CartHelper, GeneralHelper } from '../helper/helper'
 import { Feather } from '@expo/vector-icons'; 
 import firebase from "firebase";
+import { Button, Divider } from '@ui-kitten/components'
 
 export default function Cart({ route }) {
     const { currentUser } = useContext(UserContext)
+
+    const navigation = useNavigation()
 
     const [cartProducts, setCartProducts] = useState([])
     const [refresh, setRefresh] = useState(true)
@@ -22,13 +26,15 @@ export default function Cart({ route }) {
                     .onSnapshot(snapshot => {
                         if (snapshot.exists) {
                             const productRefs = snapshot.get('products')
-                            const productPromises = productRefs.map((productRef) => {
-                                return productRef.get()
-                            })
-                            Promise.all(productPromises).then(productSnapshots => {
-                                const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data())
-                                setCartProducts(productsFound)
-                            })
+                            if (productRefs) {
+                                const productPromises = productRefs.map((productRef) => {
+                                    return productRef.get()
+                                })
+                                Promise.all(productPromises).then(productSnapshots => {
+                                    const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data())
+                                    setCartProducts(productsFound)
+                                })
+                            }
                         } else {
                             console.log('No products in cart found for username ' + currentUser.username)
                         }
@@ -78,6 +84,64 @@ export default function Cart({ route }) {
             .catch(err => console.error(err))
     }
 
+    const handleCheckout = () => {
+        // initialize list of purchases for this user (if necessary)
+        db.collection('users_purchases').doc(currentUser.username).get().then(snapshot => {
+            if (!snapshot.exists || !snapshot.get('products')) {
+                db.collection('users_purchases').doc(snapshot.id).set({
+                    products: []
+                })
+            }
+        })
+        // initialize list of INACTIVE products for the seller (if necessary)
+        db.collection('users_products').doc(currentUser.username).get().then(snapshot => {
+            if (!snapshot.exists || !snapshot.get('inactive')) {
+                db.collection('users_products').doc(snapshot.id).set({
+                    inactive: []
+                })
+            }
+        })
+        
+        db.runTransaction((transaction) => {
+            // perform these operations for EACH product in the cart
+            return Promise.all(cartProducts.map((product) => {
+                const productRef = db.collection('products').doc(product.id)
+                const userPurchasesRef = db.collection('users_purchases').doc(currentUser.username)
+                const currentUserRef = db.collection('users').doc(currentUser.username)
+                const sellerProductsRef = db.collection('users_products').doc(product.sold_by.id)
+
+                return Promise.all([
+                    db.collection('users_carts').where('products', 'array-contains', productRef).get()
+                        .then(querySnapshot => {
+                            // remove this product from the carts of ALL users
+                            if (!querySnapshot.empty) {
+                                querySnapshot.docs.forEach(ref => {
+                                    const cartRef = db.collection('users_carts').doc(ref.id)
+                                    console.log(cartRef.path)
+                                    transaction.update(cartRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
+                                })
+                            }
+                        }), 
+                    // add the 'purchased_by' field to this product
+                    transaction.update(productRef, { purchased_by: currentUserRef }),
+                    // add this product to the list of purchases of this useer
+                    transaction.update(userPurchasesRef, { products: firebase.firestore.FieldValue.arrayUnion(productRef) }),
+                    // remove this product from the list of ACTIVE products of the seller
+                    transaction.update(sellerProductsRef, { active: firebase.firestore.FieldValue.arrayRemove(productRef) }),
+                    // add this product to the list of INACTIVE products of the seller
+                    transaction.update(sellerProductsRef, { inactive: firebase.firestore.FieldValue.arrayUnion(productRef) }),
+                ])
+            }))
+        })
+        .then(() => {
+            Alert.alert('Purchased succesfully!')
+            navigation.navigate('Purchased', { refresh: true })
+        }).catch(err => {
+            Alert.alert('Unsuccessful purchases: ' + err)
+            console.error(err)
+        })
+    }
+
     const cartProductCards = GeneralHelper.getProductCardsLong(cartProducts)
     const cartProductCardsWithRemove = cartProductCards.map((card, index) => (
         <Swipeable 
@@ -89,8 +153,6 @@ export default function Cart({ route }) {
             {card}
         </Swipeable>
     ))
-
-    const total = 0
 
     const productsView = (
         <ScrollView refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
@@ -108,10 +170,34 @@ export default function Cart({ route }) {
                             noProductsView
 
 
+    const { subtotal, fees, total } = CartHelper.getTotalCost(cartProducts)
+
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={{ padding: 20, fontSize: 28, fontWeight: '600' }}>My Cart</Text>
-            {getProductCards}
+            <View style={{ flex: 6 }}>
+                <Text style={{ padding: 20, fontSize: 28, fontWeight: '600' }}>My Cart</Text>
+                {getProductCards}
+            </View>
+            <View style={{ flex: 2, borderTopWidth: 1 }}>
+                <View style={{ flex: 3, padding: 15, justifyContent: 'center', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row' }}>
+                        <View style={styles.title}><Text style={{ fontWeight: '300' }}>SUBTOTAL</Text></View>
+                        <View style={styles.cost}><Text>${subtotal}</Text></View>
+                    </View>
+                    <View style={{ flexDirection: 'row', marginVertical: 10 }}>
+                        <View style={styles.title}><Text style={{ fontWeight: '300' }}>TAXES &#38; FEES</Text></View>
+                        <View style={styles.cost}><Text>${fees}</Text></View>
+                    </View>
+                    <View style={{ flexDirection: 'row' }}>
+                        <View style={styles.title}><Text style={{ fontWeight: 'bold' }}>TOTAL</Text></View>
+                        <View style={styles.cost}><Text>${total}</Text></View>
+                    </View>
+                </View>
+                <Divider />
+                <View style={{ flex: 2, padding: 10 }}>
+                    <Button style={styles.checkoutBtn} onPress={handleCheckout}>PROCEED TO CHECKOUT</Button>
+                </View>
+            </View>
         </SafeAreaView>
     )
 }
@@ -128,5 +214,19 @@ const styles = StyleSheet.create({
         backgroundColor: '#dd2c00',
         flex: 1,
         justifyContent: 'flex-end'
+    },
+    checkoutBtn: {
+        backgroundColor: 'black',
+        borderWidth: 0
+    },
+    title: { 
+        flex: 2, 
+        justifyContent: 'center', 
+        alignItems: 'flex-start', 
+    },
+    cost: { 
+        flex: 4, 
+        justifyContent: 'center', 
+        alignItems: 'flex-end',
     }
 });

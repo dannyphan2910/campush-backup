@@ -4,7 +4,7 @@ import { UserContext } from '../../../context/user_context'
 import { db } from '../../../firebase'
 import { GeneralHelper } from '../../../helper/helper'
 
-export default function PurchasedList() {
+export default function PurchasedList({ route }) {
     const { currentUser } = useContext(UserContext)
 
     const [purchasedProducts, setPurchaseProducts] = useState([])
@@ -14,15 +14,18 @@ export default function PurchasedList() {
         const getPurchasedProducts = () => {
             if (currentUser) {
                 db.collection('users_purchases').doc(currentUser.username).get()
-                    .then(productRefs => {
-                        if (productRefs.exists) {
-                            const productPromises = productRefs.map((productRef) => {
-                                return productRef.get()
-                            })
-                            Promise.all(productPromises).then(productSnapshots => {
-                                const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data()).reverse()
-                                setPurchaseProducts(productsFound)
-                            })
+                    .then(snapshot => {
+                        if (snapshot.exists) {
+                            const productsRef = snapshot.get('products')
+                            if (productsRef) {
+                                const productPromises = productsRef.map((productRef) => {
+                                    return productRef.get()
+                                })
+                                Promise.all(productPromises).then(productSnapshots => {
+                                    const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data())
+                                    setPurchaseProducts(productsFound)
+                                })
+                            }
                         } else {
                             console.log('No purchases found for username ' + currentUser.username)
                         }
@@ -31,7 +34,7 @@ export default function PurchasedList() {
             }
         }
         getPurchasedProducts()
-    }, [refresh])
+    }, [route, refresh])
 
     const noProductsView = (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

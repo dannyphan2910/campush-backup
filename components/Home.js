@@ -53,7 +53,7 @@ export default function Home() {
                 <View {...props} style={{ padding: 10 }}>
                     <Text style={styles.product_font} numberofLines={1}>{props.product.name.length > max ?
                         (props.product.name).substring(0,max-3) + '...' : props.product.name}</Text>
-                    <Text style={styles.seller_font}>{props.product.sold_by}</Text>
+                    <Text style={styles.seller_font}>{props.product.sold_by.id}</Text>
                 </View>
             )
         }
