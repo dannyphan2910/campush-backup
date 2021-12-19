@@ -42,11 +42,11 @@ function Main() {
           let iconName;
 
           if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
+            iconName = focused ? 'md-home' : 'md-home-outline';
             return <Ionicons name={iconName} size={size} color={color} style={{ marginTop: 10 }} />;
           } else if (route.name === 'Profile') {
-            iconName = focused ? 'user-alt' : 'user';
-            return <FontAwesome5 name={iconName} size={size} color={color} style={{ marginTop: 10 }} />;
+            iconName = focused ? 'md-person' : 'md-person-outline';
+            return <Ionicons name={iconName} size={size} color={color} style={{ marginTop: 10 }} />;
           } else if (route.name === 'Find') {
             iconName = focused ? 'md-search-sharp' : 'md-search-outline';
             return <Ionicons name={iconName} size={size} color={color} style={{ marginTop: 10 }} />;
