@@ -147,6 +147,7 @@ export default function Product({ route }) {
         let url = product.thumbnail_url
         if (imageURI !== url) {
             firebaseStorage.refFromURL(url).delete()
+            await ImageHelper.deleteImageFromCache(url, product.id)
             url = await ImageHelper.uploadImageAsync(imageURI)
         }
         const updates = {
@@ -175,12 +176,46 @@ export default function Product({ route }) {
     }
 
     const goToChat = () => {
+
+        // const navigateToConversation = () => {
+        //     const productRef = db.collection('products').doc(product.id)
+        //     const sellerRef = db.collection('users').doc(product.sold_by.id)
+        //     const userRef = db.collection('users').doc(currentUser.username)
+
+        //     db.collection('conversations')
+        //         .where('details.product', '==', productRef)
+        //         .where('details.sold_by', '==', sellerRef)
+        //         .where('details.asked_by', '==', userRef)
+        //         .limit(1)
+        //         .get()
+        //         .then(querySnapshot => {
+        //             if (!querySnapshot || querySnapshot.empty) {
+        //                 const convoRef = db.collection('conversations').doc()
+        //                 const body = {
+        //                     id: convoRef.id,
+        //                     details: {
+        //                         product: productRef,
+        //                         sold_by: sellerRef,
+        //                         asked_by: userRef
+        //                     },
+        //                     messages: []
+        //                 }
+                        
+        //                 navigation.navigate('Chat', { conversationInfo: body })
+        //             } else if (querySnapshot.size == 1) {
+        //                 querySnapshot.forEach(convoSnapshot => {
+        //                     if (convoSnapshot) {
+        //                         convoSnapshot.data
+        //                     }
+        //                 })
+        //             } else {
+        //                 console.error('Found multiple conversations: ', querySnapshot.docs.map(doc => doc.id))
+        //             }
+        //         })
+        // }
+
         if (product) {
-            const params = {
-                productId: product.id,
-                sellerUsername: product.sold_by.id
-            }
-            navigation.navigate('Chat', params)
+            navigation.navigate('Chat', { productId: id, sellerUsername: product.sold_by.id })
         }
     }
 

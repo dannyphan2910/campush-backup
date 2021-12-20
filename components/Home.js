@@ -91,8 +91,16 @@ export default function Home() {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
 
-            <ScrollView style={{ width: '100%' }} refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
-                <Text style={{padding: 20, fontSize: 28, fontWeight: '600',}}>Hello, {currentUser.first_name} {currentUser.last_name}!</Text>
+            <ScrollView style={{ width: '100%', paddingTop: 15 }} refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
+                <View style={{ flex: 2, padding: 20, flexDirection: 'row' }}>
+                    <View style={{ flex: 6, alignItems: 'flex-start', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 28, fontWeight: '600' }}>Hello, {currentUser.first_name} {currentUser.last_name}!</Text>
+                    </View>
+                    <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+                        <Feather name="inbox" size={24} color="black" onPress={() => navigation.navigate('Inbox')} />
+                    </View>
+                </View>
+
                 <View style={styles.body}>
                     <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                         <Text style={styles.header_font}>Featured Products</Text>
@@ -127,6 +135,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         justifyContent: 'center',
         paddingHorizontal: 20,
+        marginTop: 10,
     },
     header_font: {
         fontWeight: 'bold',

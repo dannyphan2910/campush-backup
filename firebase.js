@@ -23,6 +23,7 @@ if (!firebase.apps.length) {
 }
 
 const db = app.firestore();
+const realtimedb = app.database();
 const firebaseStorage = app.storage();
 
-export { db, firebaseStorage }
+export { db, realtimedb, firebaseStorage }

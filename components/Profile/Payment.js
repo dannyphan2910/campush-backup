@@ -1,76 +1,266 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { Alert, Keyboard, KeyboardAvoidingView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
-import { CardField, useConfirmSetupIntent, initStripe } from '@stripe/stripe-react-native'
-import { Button, Input } from '@ui-kitten/components';
+import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
+import { CardField, useConfirmSetupIntent } from '@stripe/stripe-react-native'
+import { Button, Card, Input } from '@ui-kitten/components';
 import { UserContext } from '../../context/user_context';
-import * as Linking from 'expo-linking';
-import Constants from 'expo-constants';
+import { db } from '../../firebase';
+import storage from '../../storage/storage';
+import { Ionicons, Fontisto, MaterialCommunityIcons } from '@expo/vector-icons'; 
+
+const windowWidth = Dimensions.get('window').width;
+const LAMBDA_URL = 'https://j0uhzvsibf.execute-api.us-east-2.amazonaws.com/'
 
 export default function Payment() {
-    const { currentUser } = useContext(UserContext)
+    const { currentUser, setCurrentUser } = useContext(UserContext)
+
+    const [refresh, setRefresh] = useState(true)
+
+    const [paymentMethods, setPaymentMethods] = useState([])
+
+    useEffect(() => {
+        const retrievePaymentMethods = async () => {
+            if (currentUser.stripe_customer_id) {
+                var response = await fetch(`${LAMBDA_URL}/retrieve_payment_methods`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        customer_id: currentUser.stripe_customer_id
+                    }),
+                })
+                const { data } = await response.json()
+                setPaymentMethods(data)
+                setRefresh(false)
+            }
+        }
+        retrievePaymentMethods()
+    }, [refresh, currentUser.has_payment])
+
+    if (!currentUser.stripe_customer_id || !currentUser.has_payment 
+        || !paymentMethods || paymentMethods.length == 0) {
+        return <AddPaymentCard />
+    }
+    
+    const detachPaymentMethod = (id) => {
+        console.log(currentUser.stripe_customer_id, id)
+        if (currentUser.stripe_customer_id) {
+            fetch(`${LAMBDA_URL}/detach_payment_method`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    payment_method_id: id
+                }),
+            })
+            .then(() => { 
+                db.collection('users').doc(currentUser.username).update({ has_payment: false })
+                let curr = Object.assign({}, currentUser)
+                const newUserInfo = {
+                    ...curr,
+                    has_payment: false
+                }
+                storage.setCurrentUser(newUserInfo)
+                    .then((success) => {
+                        if (success) {
+                            setCurrentUser(newUserInfo)
+                        }
+                    })
+                setRefresh(true)
+            })
+            .catch(err => console.error(err))
+        }
+    }
+
+    const handleReplace = (id) => {
+        Alert.alert(
+            'Are you sure?', 
+            'Choosing to replace this card will detach this payment method. This change cannot be reversed.',     
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel",
+                },
+                {
+                    text: "Remove Card",
+                    onPress: () => detachPaymentMethod(id),
+                    style: "destructive",
+                },
+            ],
+            {
+                cancelable: true,
+            }
+        )
+    }
+
+    const paymentCardList = paymentMethods.map(paymentMethod => {
+        const { id, card } = paymentMethod
+        console.log(id, card)
+
+        let iconName = 'credit-card'
+        switch(card.brand) {
+            case 'visa': iconName = 'visa'; break;
+            case 'mastercard': iconName = 'mastercard'; break;
+            case 'discover': iconName = 'discover'; break;
+            case 'amex': iconName = 'american-express'; break;
+            case 'jcb': iconName = 'jcb'; break;
+        }
+
+        let ccNumText = []
+        for (var i = 0; i < 3; i++) {
+            ccNumText.push(
+                <Text style={{ color: 'white', fontSize: 18, marginRight: 15, letterSpacing: 1 }}>
+                    &#8226; &#8226; &#8226; &#8226; 
+                </Text>
+            )
+        }
+        ccNumText.push(
+            <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold', letterSpacing: 1  }}>
+                {card.last4}
+            </Text>
+        )
+
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} key={paymentMethod.id}>
+                <View style={{ flex: 2, justifyContent: 'center', alignItems: 'center' }}>
+                    <Card style={{ flex: 1, maxHeight: 200, minWidth: windowWidth*0.8, backgroundColor: 'black', borderRadius: 15 }}>
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>  
+                            <View style={{ flex: 1, alignSelf: 'flex-start' }}>
+                                <Fontisto name={iconName} size={24} color="white" />
+                            </View>
+                            <View style={{ flex: 1, flexDirection: 'row' }}>
+                                <Ionicons name="hardware-chip-outline" size={35} color="white" style={{ flex: 1, alignSelf: 'flex-start' }} />
+                                <MaterialCommunityIcons name="contactless-payment" size={30} color="white" />
+                            </View>
+                            <View style={{ flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                                {ccNumText}
+                            </View>
+                            <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '200' }}>Cardholder Name</Text>
+                                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{currentUser.first_name} {currentUser.last_name}</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={{ color: 'white', fontSize: 10, fontWeight: '200' }}>Expiration Date</Text>
+                                    <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{("0" + card.exp_month).slice(-2)}/{card.exp_year.toString().slice(-2)}</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </Card>
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Button style={{ marginVertical: 15, backgroundColor: 'black', borderWidth: 0 }} onPress={() => handleReplace(id)}>Replace This Card</Button>
+                </View>
+            </View>
+        )
+    })
+
+
+    return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: 'white'  }}>
+            {paymentCardList}
+        </View>   
+    )
+}
+
+
+function AddPaymentCard() {
+    const { currentUser, setCurrentUser } = useContext(UserContext)
 
     const { confirmSetupIntent, loading } = useConfirmSetupIntent();
-    const [card, setCard] = useState({})
-    const [setupIntent, setSetupIntent] = useState(null);
+    const [card, setCard] = useState()
 
     const [address, setAddress] = useState('')
     const [city, setCity] = useState('')
     const [state, setState] = useState('')
-    const [country, setCountry] = useState('')
+    const [country, setCountry] = useState('US')
     const [postalCode, setPostalCode] = useState('')
 
-    useEffect(() => {
-        // initStripe({
-        //     publishableKey: 'pk_test_51K78wDBXa70L4pYtnzSfk0aVYDvTSPNvuNtvWj45i2MeGVs4HrJwwwOVnbLxP3Um8MC5buAiLmWeh2zGH74GDkIP00wXIaquEa',
-        //     urlScheme: Constants.appOwnership === 'expo' ? Linking.createURL('/--/') : Linking.createURL(''),
-        // });
-    }, [])
-
     const handleSave = async () => {
-        // const createSetupIntentOnBackend = async () => {
-        //     const response = await fetch(`https://api.stripe.com/v1/create-setup-intent`, {
-        //       method: 'POST',
-        //       headers: {
-        //         'Content-Type': 'application/json',
-        //       },
-        //       body: JSON.stringify({ email: currentUser.email }),
-        //     });
-        //     const { clientSecret } = await response.json();
-        
-        //     return clientSecret;
-        //   };
-        // // 1. fetch Intent Client Secret from backend
-        // const clientSecret = await createSetupIntentOnBackend();  
-        // // 2. Gather customer billing information (ex. email)
-        // const billingDetails = {
-        //     email: currentUser.email,
-        //     phone: '+17817809809',
-        //     addressCity: city,
-        //     addressCountry: country,
-        //     addressLine1: address,
-        //     addressPostalCode: postalCode,
-        // };      
-        // // 3. Confirm setup intent
-        // const { error, setupIntent: setupIntentResult } = await confirmSetupIntent(
-        //     clientSecret,
-        //     {
-        //         type: 'Card',
-        //         billingDetails,
-        //     }
-        // );
-    
-        // if (error) {
-        //     Alert.alert(`Error code: ${error.code}`, error.message);
-        //     console.log('Setup intent confirmation error', error.message);
-        // } else if (setupIntentResult) {
-        //     Alert.alert(
-        //         'Success',
-        //         `Setup intent created. Intent status: ${setupIntentResult.status}`
-        //     );
-    
-        //     setSetupIntent(setupIntentResult);
-        // }
+        const getStripeCustomerId = async () => {
+            if (!currentUser.stripe_customer_id) {
+                var response = await fetch(`${LAMBDA_URL}/create_new_customer`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        email: currentUser.email, 
+                        name: `${currentUser.first_name} ${currentUser.last_name}` 
+                    }),
+                })
+
+                const { id } = await response.json()
+                return id
+            } else {
+                return currentUser.stripe_customer_id
+            }
+        }
+
+        const createSetupIntentOnBackend = async (customerId) => {
+            var response = await fetch(`${LAMBDA_URL}/create_setup_intents`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ customer_id: customerId }),
+              });
+            const data = await response.json();
+            const { client_secret } = data
+            console.log(data)
+            return client_secret;
+        }
+
+        // 1. fetch user's Stripe Customer ID
+        const customerId = await getStripeCustomerId()
+        console.log(customerId)
+        // 2. fetch Intent Client Secret from backend - create a Customer object if not available
+        const clientSecret = await createSetupIntentOnBackend(customerId);  
+        // 3. Gather customer billing information (ex. email)
+        const billingDetails = {
+            email: currentUser.email,
+            addressCity: city,
+            addressCountry: country,
+            addressLine1: address,
+            addressPostalCode: postalCode,
+            addressState: state
+        };      
+        // 4. Confirm setup intent
+        const { error } = await confirmSetupIntent(
+            clientSecret,
+            {
+                type: 'Card',
+                billingDetails,
+            }
+        );
+            
+        var has_payment = false
+        if (error) {
+            Alert.alert(`Error code: ${error.code}`, error.message);
+            console.error('Setup intent confirmation error', error.message);
+        } else {
+            has_payment = true
+            db.collection('users').doc(currentUser.username).update(
+                { stripe_customer_id: customerId, has_payment: has_payment }
+            )
+            let curr = Object.assign({}, currentUser)
+            const newUserInfo = {
+                ...curr,
+                stripe_customer_id: customerId,
+                has_payment: has_payment
+            }
+            storage.setCurrentUser(newUserInfo)
+                .then((success) => {
+                    if (success) {
+                        setCurrentUser(newUserInfo)
+                    }
+                })
+        }
     }
+
+    const buttonDisabled = loading || !card || !card.complete
+        || !(address.length > 0 && city.length > 0 && state.length > 0 && postalCode.length > 0)
 
     return (
         <KeyboardAvoidingView style={styles.container}>
@@ -81,7 +271,7 @@ export default function Payment() {
                         <CardField 
                             postalCodeEnabled={false}
                             placeholder={{ 'number': '4242 4242 4242 4242' }}
-                            onCardChange={(cardDetails) => { console.log('card details', cardDetails); setCard(cardDetails);}}
+                            onCardChange={(cardDetails) => setCard(cardDetails)}
                             cardStyle={styles.inputStyles}
                             style={styles.cardField}
                         />
@@ -116,21 +306,22 @@ export default function Payment() {
                         <View style={{ flex: 1, marginRight: 5 }}>
                             <Text style={styles.title}>Country</Text>
                             <Input 
+                                disabled
                                 style={styles.input}
-                                onChangeText={setCountry}
                                 value={country}
                             />
                         </View>
                         <View style={{ flex: 1, marginLeft: 5 }}>
                             <Text style={styles.title}>Zip Code</Text>
                             <Input 
+                                keyboardType='number-pad'
                                 style={styles.input}
                                 onChangeText={setPostalCode}
                                 value={postalCode}
                             />
                         </View>
                     </View>
-                    <Button style={{ marginVertical: 15 }} onPress={handleSave} disabled={loading}>Save Card</Button>
+                    <Button style={{ marginVertical: 15 }} onPress={handleSave} disabled={buttonDisabled}>Save Card</Button>
                 </View>
             </TouchableWithoutFeedback>
         </KeyboardAvoidingView>

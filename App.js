@@ -27,6 +27,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Cart from './components/Cart';
 import MessageDashboard from './components/Messaging/MessageDashboard';
 import MessageView from './components/Messaging/MessageView';
+import { initStripe } from '@stripe/stripe-react-native';
 
 LogBox.ignoreLogs(['Warning: ...']); // Ignore log notification by message
 LogBox.ignoreAllLogs();//Ignore all log notifications
@@ -89,12 +90,14 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null)
 
   useEffect(() => {
+    initStripe({
+      publishableKey: 'pk_test_51K78wDBXa70L4pYtnzSfk0aVYDvTSPNvuNtvWj45i2MeGVs4HrJwwwOVnbLxP3Um8MC5buAiLmWeh2zGH74GDkIP00wXIaquEa',
+    });
+
     storage.getCurrentUser()
       .then(user => setCurrentUser(user))
       .catch(err => console.error(err))
   }, [])
-
-
 
   return (
     <SafeAreaProvider>
@@ -115,7 +118,7 @@ export default function App() {
               <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: 'New Product' }} component={SellProduct} />
               <Stack.Screen name="Product" options={{ headerBackTitle: '', headerTitle: '' }} component={Product} />
 
-              <Stack.Screen name="Inbox" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageDashboard} />
+              <Stack.Screen name="Inbox" options={{ headerBackTitle: '', headerTitle: 'My Inbox' }} component={MessageDashboard} />
               <Stack.Screen name="Chat" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageView} />
             </Stack.Navigator>
           </NavigationContainer>

@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { GeneralHelper } from '../../../helper/helper';
+import { GeneralHelper, ImageHelper } from '../../../helper/helper';
 import { db, firebaseStorage } from '../../../firebase';
 import { UserContext } from '../../../context/user_context';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -98,6 +98,7 @@ export default function SellDashboard({ route }) {
                 transaction.update(userProductsRef, { active: firebase.firestore.FieldValue.arrayRemove(productRef) })      
                 // remove the attached thumbnail images from the storage
                 firebaseStorage.refFromURL(product.thumbnail_url).delete()
+                ImageHelper.deleteImageFromCache(product.thumbnail_url, product.id)
             })
         })
         .then(() => {

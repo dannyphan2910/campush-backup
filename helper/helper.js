@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, Text } from "@ui-kitten/components";
 import { Image, View } from "react-native";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import { FontAwesome } from '@expo/vector-icons';
 
 export const UserHelper = {
     getUsername: (email) => email.substring(0, email.indexOf("@brandeis.edu"))
@@ -32,6 +33,7 @@ export const GeneralHelper = {
                     <View style={{ flex: 3, justifyContent: 'space-between' }}>
                         <Text><Text category='s1'>Name: </Text>{product.name}</Text>
                         <Text><Text category='s1'>Price: </Text>${GeneralHelper.numberWithCommas(product.price)}</Text>
+                        <Text><FontAwesome name="heart" size={10} color="black" /> {product.favorited_by.length}</Text>
                     </View>
                 </View>
             </Card>
@@ -76,7 +78,7 @@ export const ImageHelper = {
             { compress: 0.8, format: SaveFormat.PNG }
           );
         return manipResult.uri
-    }
+    },
 }
 
 export const CartHelper = {

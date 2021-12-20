@@ -25,6 +25,7 @@ export default function Account() {
         if (avatarURL !== url) {
             try {
                 firebaseStorage.refFromURL(url).delete()
+                await ImageHelper.deleteImageFromCache(url, currentUser.username)
             } catch (err) {
                 console.warn('No exisiting avatar found in Firebase Storage ' + url)
             } finally {

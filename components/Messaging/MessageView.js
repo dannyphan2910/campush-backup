@@ -52,18 +52,18 @@ export default function MessageView({ route }) {
         getProduct()
         getSellerProfile()
 
-        setMessages([
-            {
-            _id: 1,
-            text: 'Hello developer',
-            createdAt: new Date(),
-            user: {
-                _id: 2,
-                name: 'React Native',
-                avatar: 'https://placeimg.com/140/140/any',
-            },
-            },
-        ])
+        // setMessages([
+        //     {
+        //         _id: 1,
+        //         text: 'Hello developer',
+        //         createdAt: new Date(),
+        //         user: {
+        //             _id: 2,
+        //             name: 'React Native',
+        //             avatar: 'https://placeimg.com/140/140/any',
+        //         },
+        //     },
+        // ])
     }, [])
 
   
