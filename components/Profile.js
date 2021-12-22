@@ -1,12 +1,13 @@
 import { useNavigation } from '@react-navigation/core';
 import { Avatar, Divider, Menu, MenuItem } from '@ui-kitten/components';
 import React, { useContext, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { UserContext } from '../context/user_context';
 import storage from '../storage/storage';
 import { CommonActions } from '@react-navigation/native';
 import { GeneralHelper, UserHelper } from '../helper/helper';
 import { db } from '../firebase';
+import CachedImage from './CachedImage';
 
 export default function Profile() {
     const { currentUser, setCurrentUser } = useContext(UserContext)
@@ -46,37 +47,43 @@ export default function Profile() {
         return null
     }
 
-    const countSection = ((titles, counts) => {
-        const getTextView = (text, textWeight) => (
-            <View   key={GeneralHelper.getRandomID()}
-                    style={{ flex: 1, justifyContent: 'center', alignItems: 'center', 
-                            borderLeftColor: 'black', borderLeftWidth: 0.2,
-                            borderRightColor: 'black', borderRightWidth: 0.2 }}>
-                <Text style={{ fontSize: 18, fontWeight: textWeight, marginTop: 5 }}>{text}</Text>
+    const countSection = ((titles, counts, componentNames) => {
+        const getColumnView = (title, count, component) => (
+            <TouchableOpacity 
+                onPress={() => navigation.navigate(component)}
+                key={GeneralHelper.getRandomID()}
+                style={{ flex: 1, justifyContent: 'space-between', alignItems: 'center',
+                        borderLeftColor: 'black', borderLeftWidth: 0.2,
+                        borderRightColor: 'black', borderRightWidth: 0.2 }} >
+               <Text style={{ fontSize: 18, fontWeight: '400' }}>{title}</Text>
+               <Text style={{ fontSize: 18, fontWeight: '200' }}>{count}</Text>
+            </TouchableOpacity>
+        )
+
+        return (
+            <View style={{ flex: 1, flexDirection: 'row', paddingVertical: 10 }}>
+                {titles.map((title, index) => getColumnView(title, counts[index], componentNames[index]))}
             </View>
         )
-        return (
-            <>
-                <View style={{ flexDirection: 'row' }}>
-                    {titles.map(title => getTextView(title, '400'))}
-                </View>
-                <View style={{ flexDirection: 'row' }}>
-                    {counts.map(count => getTextView(count, '200'))}
-                </View>
-            </>
-        )
-    })(['Purchased', 'Sell', 'Sold'], [purchasedCount, sellCount, soldCount])
+
+    })(['Purchased', 'Sell', 'Sold'], [purchasedCount, sellCount, soldCount], ['History', 'SellDashboard', 'History'])
+
+    const goToAccount = () => navigation.navigate('Account')
 
     return (
         <View style={styles.container}>
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Avatar source={{ uri: currentUser.avatar_url }} size='giant' />
-                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', margin: 10 }}>
-                    <Text style={{ fontSize: 30, fontWeight: '600' }}>{currentUser.first_name} {currentUser.last_name}</Text>
+                <View style={{ flex: 3, justifyContent: 'center', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={goToAccount}>
+                        <CachedImage source={{ uri: currentUser.avatar_url }} style={styles.avatar}  />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10 }} onPress={goToAccount}>
+                        <Text style={{ fontSize: 30, fontWeight: '600' }}>{currentUser.first_name} {currentUser.last_name}</Text>
+                    </TouchableOpacity>
                 </View>
                 {countSection}
             </View>
-            <View style={{ flex: 3 }}>
+            <View style={{ flex: 2 }}>
                 <Menu style={{ backgroundColor: 'white' }}>
                     <MenuItem
                         title={() => <Text style={{ paddingLeft: 10, fontSize: 20, fontWeight: '500' }}>Account</Text>}
@@ -136,4 +143,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         paddingTop: 50
     },
+    avatar: {
+        width: 75, 
+        height: 75,
+        borderRadius: 75/2
+    }
 });

@@ -7,6 +7,7 @@ import { db } from '../../firebase';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Divider, Text } from '@ui-kitten/components';
 import { FontAwesome } from '@expo/vector-icons';
+import CachedImage from '../CachedImage';
 
 
 export default function MessageView({ route }) {
@@ -81,11 +82,12 @@ export default function MessageView({ route }) {
             <TouchableOpacity style={{ height: '100%', backgroundColor: 'white', padding: 15 }} key={product.id} onPress={() => navigation.navigate('Product', { id: product.id })}>
                 <View style={{ flex: 1, flexDirection: 'row' }}>
                     <View style={{ flex: 2, justifyContent: 'center' }}>
-                        <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_url }} />
+                        <CachedImage style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_urls[0] }} />
                     </View>
                     <View style={{ flex: 3, justifyContent: 'space-between' }}>
                         <Text><Text category='s1'>Name: </Text>{product.name}</Text>
                         <Text><Text category='s1'>Price: </Text>${product.price}</Text>
+                        <Text><FontAwesome name="heart" size={10} color="black" /> {product.favorited_by.length}</Text>
                     </View>
                 </View>
             </TouchableOpacity>

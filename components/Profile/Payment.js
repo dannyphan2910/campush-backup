@@ -1,11 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { Alert, Dimensions, Keyboard, KeyboardAvoidingView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { CardField, useConfirmSetupIntent } from '@stripe/stripe-react-native'
-import { Button, Card, Input } from '@ui-kitten/components';
+import { Button, Card, Input, Select, SelectItem } from '@ui-kitten/components';
 import { UserContext } from '../../context/user_context';
 import { db } from '../../firebase';
 import storage from '../../storage/storage';
 import { Ionicons, Fontisto, MaterialCommunityIcons } from '@expo/vector-icons'; 
+import { GeneralHelper } from '../../helper/helper';
 
 const windowWidth = Dimensions.get('window').width;
 const LAMBDA_URL = 'https://j0uhzvsibf.execute-api.us-east-2.amazonaws.com/'
@@ -262,6 +263,8 @@ function AddPaymentCard() {
     const buttonDisabled = loading || !card || !card.complete
         || !(address.length > 0 && city.length > 0 && state.length > 0 && postalCode.length > 0)
 
+    console.log(state)
+
     return (
         <KeyboardAvoidingView style={styles.container}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -279,6 +282,7 @@ function AddPaymentCard() {
                     <View style={{ }}>
                         <Text style={styles.title}>Billing Address</Text>
                         <Input 
+                            placeholder='Address'
                             style={styles.input}
                             onChangeText={setAddress}
                             value={address}
@@ -288,6 +292,7 @@ function AddPaymentCard() {
                         <View style={{ flex: 1, marginRight: 5 }}>
                             <Text style={styles.title}>City</Text>
                             <Input 
+                                placeholder='City'
                                 style={styles.input}
                                 onChangeText={setCity}
                                 value={city}
@@ -295,11 +300,16 @@ function AddPaymentCard() {
                         </View>
                         <View style={{ flex: 1, marginLeft: 5 }}>
                             <Text style={styles.title}>State</Text>
-                            <Input 
-                                style={styles.input}
-                                onChangeText={setState}
+                            <Select 
+                                placeholder='State'
                                 value={state}
-                            />
+                                onSelect={index => setState(GeneralHelper.US_STATES[index-1]['name'])}>
+                                {GeneralHelper.US_STATES.map(stateObj => (
+                                    <SelectItem 
+                                        title={stateObj['name']} 
+                                        key={stateObj['abbreviation']} />
+                                ))}
+                            </Select>
                         </View>
                     </View>
                     <View style={{ flexDirection: 'row' }}>
@@ -314,6 +324,7 @@ function AddPaymentCard() {
                         <View style={{ flex: 1, marginLeft: 5 }}>
                             <Text style={styles.title}>Zip Code</Text>
                             <Input 
+                                placeholder='Zip Code'
                                 keyboardType='number-pad'
                                 style={styles.input}
                                 onChangeText={setPostalCode}

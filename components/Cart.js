@@ -4,7 +4,7 @@ import { Alert, Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView,
 import { Swipeable } from 'react-native-gesture-handler'
 import { UserContext } from '../context/user_context'
 import { db } from '../firebase'
-import { CartHelper, GeneralHelper } from '../helper/helper'
+import { CartHelper, GeneralHelper, ProductHelper } from '../helper/helper'
 import { Feather } from '@expo/vector-icons'; 
 import firebase from "firebase";
 import { Button, Divider } from '@ui-kitten/components'
@@ -151,7 +151,7 @@ export default function Cart({ route }) {
         }
     }
 
-    const cartProductCards = GeneralHelper.getProductCardsLong(cartProducts)
+    const cartProductCards = ProductHelper.getProductCardsLong(cartProducts)
     const cartProductCardsWithRemove = cartProductCards.map((card, index) => (
         <Swipeable 
             ref={ref => swipeRefs.current[index] = ref}

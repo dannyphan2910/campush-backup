@@ -1,10 +1,15 @@
 import { useNavigation } from '@react-navigation/core';
-import { Card, Layout, Button, Divider } from '@ui-kitten/components';
-import { Feather } from '@expo/vector-icons';
+import { Card, Divider, Layout } from '@ui-kitten/components';
+import { Feather, FontAwesome, AntDesign } from '@expo/vector-icons';
 import React, { useContext, useEffect, useState } from 'react';
-import { Image, SafeAreaView, ScrollView, StyleSheet, Text, View, StatusBar, RefreshControl } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, StatusBar, Dimensions, Pressable } from 'react-native';
 import { UserContext } from '../context/user_context';
 import { db } from '../firebase';
+import CachedImage from './CachedImage';
+import firebase from "firebase";
+import SwipeCards from "react-native-swipe-cards-deck"
+
+const windowWidth = Dimensions.get('window').width;
 
 export default function Home() {
     const { currentUser } = useContext(UserContext)
@@ -12,6 +17,8 @@ export default function Home() {
     const navigation = useNavigation()
 
     const [featuredProducts, setFeatureProducts] = useState([])
+    const [numFavorites, setNumFavorites] = useState(0)
+
     const [refresh, setRefresh] = useState(true)
 
     useEffect(() => {
@@ -22,13 +29,13 @@ export default function Home() {
                         if (!querySnapshot.empty) {
                             let products = []
                             querySnapshot.forEach((productSnapshot) => {
-                                var random_boolean = Math.random() < 0.5;
-                                if (!productSnapshot.get('purchased_by')) {
-                                    if (random_boolean) {
+                                // var random_boolean = Math.random() < 0.5;
+                                // if (!productSnapshot.get('purchased_by')) {
+                                //     if (random_boolean) {
                                         const product = productSnapshot.data();
                                         products.push(product)
-                                    }
-                                }
+                                //     }
+                                // }
                             });
                             setFeatureProducts(products)
                         } else {
@@ -39,78 +46,143 @@ export default function Home() {
                 )
                 .catch(err => console.error(err))
         }
+
+        const getFavoritesCount = () => {
+            if (currentUser) {
+                db.collection('users_favorites').doc(currentUser.username)
+                    .onSnapshot(snapshot => {
+                        if (snapshot.exists) {
+                            const favoritesRef = snapshot.get('products')
+                            if (favoritesRef) setNumFavorites(favoritesRef.length)
+                        }
+                    })
+            }
+        }
+
         getProducts()
+        getFavoritesCount()
     }, [refresh])
 
     if (!currentUser) {
         return null
     }
 
-    const productsCards = (products) => {
-        const Header = (props) => {
-            const max = 18
-            return (
-                <View {...props} style={{ padding: 10 }}>
-                    <Text style={styles.product_font} numberofLines={1}>{props.product.name.length > max ?
-                        (props.product.name).substring(0,max-3) + '...' : props.product.name}</Text>
-                    <Text style={styles.seller_font}>{props.product.sold_by.id}</Text>
-                </View>
-            )
-        }
-        const getCard = (product) => (
-            <Card style={styles.card}
-                key={product.id}
-                header={(props) => <Header {...props} product={product} />}
-                onPress={() => navigation.navigate('Product', { id: product.id })}>
+    const getDeckCard = (product) => {
+        const borderRadius = 15
+
+        return (
+            <Pressable 
+                onLongPress={() => navigation.navigate('Product', { id: product.id })}
+                style={{ backgroundColor: 'white', borderRadius: borderRadius, borderWidth: 1 }} 
+                key={product.id}>    
                 <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                    <Image style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_url }} />
+                    <CachedImage 
+                        style={{ width: windowWidth * 0.9, height: windowWidth * 0.9, borderTopRightRadius: borderRadius, borderTopLeftRadius: borderRadius }} 
+                        source={{ uri: product.thumbnail_urls[0] }} />
                 </View>
-            </Card>
+                <Divider />
+                <View style={{ padding: 20, flexDirection: 'row' }}>
+                    <View style={{ flex: 5 }}>
+                        <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{product.name}</Text>
+                        <Text style={{ fontSize: 16, fontWeight: '500' }}>{product.sold_by.id}</Text>
+                    </View>
+                    <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <Text>{product.favorited_by.length}</Text>
+                        <FontAwesome name="heart" size={24} color="black" style={{ marginLeft: 10 }} />
+                    </View>
+                </View>
+            </Pressable>
         )
-        let productsCards = []
-        for (var i = 0; i < products.length-1; i+=2) {
-            const product1 = products[i]
-            const product2 = products[i+1]
-            const card1 = getCard(product1)
-            const card2 = getCard(product2)
-            productsCards.push(
-                <Layout style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }} 
-                        level='1' 
-                        key={product1.id.toString() + product2.id.toString()}>
-                    {card1}
-                    {card2}
-                </Layout>
-            )
-        }
-        return productsCards
     }
 
-    const featuredProductsCards = productsCards(featuredProducts)
+    const handleSwipeRight = async (id) => {
+        db.runTransaction((transaction) => {
+            const productRef = db.collection('products').doc(id)
+            const userRef = db.collection('users').doc(currentUser.username)
+
+            const userFavoritesRef = db.collection('users_favorites').doc(currentUser.username)
+
+            const addFavorite = () => {
+                transaction.update(userFavoritesRef, { products: firebase.firestore.FieldValue.arrayUnion(productRef) })
+                    .update(productRef, { favorited_by: firebase.firestore.FieldValue.arrayUnion(userRef) })
+            }
+
+            return transaction.get(userFavoritesRef).then(snapshot => {
+                if (!snapshot.exists || !snapshot.get('products')) {
+                    transaction.set(userFavoritesRef, {
+                        products: []
+                    }) 
+                } 
+                addFavorite()
+            })
+        })
+        .then(() => console.log('Added to favorites'))
+        .catch(err => console.error(err))
+    }
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-
-            <ScrollView style={{ width: '100%', paddingTop: 15 }} refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
-                <View style={{ flex: 2, padding: 20, flexDirection: 'row' }}>
-                    <View style={{ flex: 6, alignItems: 'flex-start', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 28, fontWeight: '600' }}>Hello, {currentUser.first_name} {currentUser.last_name}!</Text>
-                    </View>
-                    <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
-                        <Feather name="inbox" size={24} color="black" onPress={() => navigation.navigate('Inbox')} />
-                    </View>
+            <View style={{ flex: 1, paddingTop: 20, paddingHorizontal: 20, flexDirection: 'row' }}>
+                <View style={{ flex: 6, alignItems: 'flex-start', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 28, fontWeight: '600' }}>Hello, {currentUser.first_name} {currentUser.last_name}!</Text>
                 </View>
-
+                <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <Feather name="inbox" size={24} color="black" onPress={() => navigation.navigate('Inbox')} />
+                </View>
+            </View>
+            <View style={{ flex: 10, paddingHorizontal: 20 }}>
                 <View style={styles.body}>
-                    <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                        <Text style={styles.header_font}>Featured Products</Text>
-                    </View>
-
-                    <View style={styles.bodyContainer}>
-                        {featuredProductsCards}
+                    <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ flex: 5, justifyContent: 'center', alignItems: 'flex-start' }}>
+                            <Text style={styles.header_font}>Featured Products</Text>
+                        </View>
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end' }}>
+                            <Feather name="refresh-ccw" size={22} color="black" onPress={() => setRefresh(true)} />
+                        </View>
                     </View>
                 </View>
-            </ScrollView>
+                <View style={styles.bodyContainer}>
+                    <SwipeCards
+                        cards={featuredProducts}
+                        renderCard={(product) => getDeckCard(product)}
+                        keyExtractor={(cardData) => cardData.text}
+                        loop={true}
+                        renderNoMoreCards={() => (
+                            <Card>
+                                <Text style={{ fontSize: 24, fontWeight: '500', textAlign: 'center' }}>No Suggested Products Left...</Text>
+                                <Text style={{ fontSize: 24, fontWeight: '500', textAlign: 'center' }}>Try refreshing!</Text>
+                            </Card>
+                        )}
+                        dragY={false}
+                        actions={{
+                            nope: { 
+                                onAction: (product) => { return true }, 
+                                text: <AntDesign name="dislike2" size={24} color="red" />,
+                            },
+                            yup: { 
+                                onAction: (product) => { handleSwipeRight(product.id); return true }, 
+                                text: <AntDesign name="like2" size={24} color="green" /> 
+                            },
+                        }}
+                        stack={true}
+                        stackOffsetX={0}
+                        stackDepth={2}
+                        />
+                </View>
+                <View style={{ flex: 2, marginBottom: 20 }}>
+                    <Pressable 
+                        onPress={() => navigation.navigate('Favorites')}
+                        style={{ flex: 1, flexDirection: 'row', borderWidth: 1, borderRadius: 10, justifyContent: 'center', alignItems: 'center', padding: 20 }} >
+                        <View style={{ flex: 5 }}>
+                            <Text style={{ fontSize: 15, fontWeight: '600' }}>GO TO YOUR FAVORITES ({numFavorites})</Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                            <Feather name="arrow-right-circle" size={24} color="black" />
+                        </View>
+                    </Pressable>
+                </View>
+            </View>
         </SafeAreaView>
     );
 }
@@ -123,24 +195,18 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     bodyContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    card: {
-        marginVertical: 5,
-        width: '48%',
+        flex: 12,
     },
     body: {
-        alignItems: 'flex-start',
         justifyContent: 'center',
-        paddingHorizontal: 20,
+        alignItems: 'center',
         marginTop: 10,
+        flex: 1, 
+        width: '100%'
     },
     header_font: {
-        fontWeight: 'bold',
-        fontSize: 20,
-        paddingBottom: 10,
+        fontWeight: '600',
+        fontSize: 22,
     },
     product_font: {
         // fontFamily: 'San Francisco',

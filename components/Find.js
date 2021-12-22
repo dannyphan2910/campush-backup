@@ -2,7 +2,7 @@ import { Input } from '@ui-kitten/components'
 import React, { useContext, useEffect, useState } from 'react'
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View, Text, SafeAreaView, ScrollView, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native'
-import { GeneralHelper } from '../helper/helper';
+import { GeneralHelper, ProductHelper } from '../helper/helper';
 import { db } from '../firebase';
 import { UserContext } from '../context/user_context';
 
@@ -51,7 +51,7 @@ export default function Find() {
     const productsView = (
         <View style={{ flex: 15 }}>
             <ScrollView >
-                {GeneralHelper.getProductCardsLong(results)}
+                {ProductHelper.getProductCardsLong(results)}
             </ScrollView>
         </View>
     )

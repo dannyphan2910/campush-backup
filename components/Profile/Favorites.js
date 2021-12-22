@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { GeneralHelper } from '../../helper/helper';
+import { GeneralHelper, ProductHelper } from '../../helper/helper';
 import { db, firebaseStorage } from '../../firebase';
 import { UserContext } from '../../context/user_context';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -91,7 +91,7 @@ export default function Favorites() {
         .catch(err => console.error(err))
     }
 
-    const productCards = GeneralHelper.getProductCardsLong(favoritedProducts)
+    const productCards = ProductHelper.getProductCardsLong(favoritedProducts)
     const productCardsWithDelete = productCards.map((card, index) => (
         <Swipeable 
             ref={ref => swipeRefs.current[index] = ref}

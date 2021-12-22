@@ -1,13 +1,14 @@
 import { useNavigation } from '@react-navigation/core';
-import { Button, Divider, Input, Modal, Text } from '@ui-kitten/components';
+import { Button, Divider, Text } from '@ui-kitten/components';
 import React, { useContext, useEffect, useState } from 'react'
-import { Alert, Dimensions, Image, Keyboard, KeyboardAvoidingView, RefreshControl, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
+import { Alert, Dimensions, RefreshControl, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
 import { UserContext } from '../context/user_context';
-import { db, firebaseStorage } from '../firebase';
-import { GeneralHelper, ImageHelper } from '../helper/helper';
-import CameraView from './CameraView';
-import { FontAwesome, Feather, MaterialCommunityIcons, AntDesign, Ionicons } from '@expo/vector-icons';
+import { db } from '../firebase';
+import { GeneralHelper } from '../helper/helper';
+import { FontAwesome, Feather, AntDesign, Ionicons } from '@expo/vector-icons';
 import firebase from "firebase";
+import CachedImage from './CachedImage';
+import { FlatList } from 'react-native-gesture-handler';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -22,13 +23,6 @@ export default function Product({ route }) {
     const [numInCart, setNumInCart] = useState(0) 
     const [isInCart, setIsInCart] = useState(false)
 
-    const [editMode, setEditMode] = useState(false)
-    const [name, setName] = useState("")
-    const [description, setDescription] = useState("")
-    const [price, setPrice] = useState(0)
-    const [cameraOpen, setCameraOpen] = useState(false)
-    const [imageURI, setImageURI] = useState()
-
     const [refresh, setRefresh] = useState(true)
 
     useEffect(() => {
@@ -39,10 +33,6 @@ export default function Product({ route }) {
                         if (snapshot.exists) {
                             const product = snapshot.data()
                             setProduct(product)
-                            setName(product.name)
-                            setDescription(product.description)
-                            setPrice(product.price.toString())
-                            setImageURI(product.thumbnail_url)
                             const favorited = product.favorited_by
                                 .map(userRef => userRef.id)
                                 .includes(currentUser.username)
@@ -75,13 +65,13 @@ export default function Product({ route }) {
             }
         }
         getProduct()
-    }, [refresh])
+    }, [route, refresh])
 
     if (!product || !currentUser) {
         return null
     }
 
-    const handleEdit = () => setEditMode(true)
+    const handleEdit = () => navigation.navigate('SellProduct', { isEditMode: true, product: product })
 
     const handleAddToCart = () => {
         db.runTransaction((transaction) => {
@@ -143,33 +133,13 @@ export default function Product({ route }) {
         .catch(err => console.error(err))
     }
 
-    const handleEditSave = async () => {
-        let url = product.thumbnail_url
-        if (imageURI !== url) {
-            firebaseStorage.refFromURL(url).delete()
-            await ImageHelper.deleteImageFromCache(url, product.id)
-            url = await ImageHelper.uploadImageAsync(imageURI)
-        }
-        const updates = {
-            name: name,
-            description: description,
-            price: parseFloat(price),
-            thumbnail_url: url
-        }
-        db.collection('products').doc(id).update(updates)
-            .then(() => { Alert.alert('Edit successfully'); setEditMode(false); setRefresh(true) })
-            .catch(err => { Alert.alert('Edit unsuccessfully ' + err); console.error(err) })
-    }
-
     const getButton = () => {
         if (isInCart) {
             return <Button style={styles.actionButtonStyle} onPress={() => navigation.navigate('Cart')}>IN CART</Button>
         } else if (product.purchased_by) {
             return <Button style={[styles.actionButtonStyle, { backgroundColor: 'lightgray' }]} disabled>SOLD</Button>
         } else if (product.sold_by.id === currentUser.username) {
-            if (!editMode) {
-                return <Button style={styles.actionButtonStyle} onPress={handleEdit}>EDIT</Button>
-            }
+            return <Button style={styles.actionButtonStyle} onPress={handleEdit}>EDIT</Button>
         } else {
             return <Button style={styles.actionButtonStyle} onPress={handleAddToCart}>ADD TO CART</Button>
         }
@@ -229,115 +199,72 @@ export default function Product({ route }) {
     }
 
     const getView = () => {
-        if (!editMode) {
-            return (
-                <ScrollView style={{ paddingHorizontal: 20 }} refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
-                    <Image style={{ width: windowWidth, height: windowWidth, alignSelf: 'center' }} source={{ uri: product.thumbnail_url }} />
-                    <View style={{ paddingTop: 10 }}>
-                        <View style={{flexDirection: 'row',}}>
-                            <View style={{flex: 5}}>
-                                <Text style={styles.productInfoTitle}>{product.name}</Text>
-                            </View>
-                            <View style={{flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center'}}>
-                                <Text>{product.favorited_by.length}</Text>
-                                {
-                                    isFavorited ? 
-                                    <FontAwesome name="heart" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} /> :
-                                    <FontAwesome name="heart-o" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} />
-                                }
-                            </View>
+        return (
+            <ScrollView refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
+                <TouchableOpacity style={styles.floatingBtn}> 
+                    <Text style={{ marginRight: 8 }}>{numInCart}</Text>
+                    <Ionicons name="eye-outline" size={24} color="black" />
+                </TouchableOpacity>
+                <FlatList
+                    pagingEnabled
+                    horizontal={true}
+                    showsHorizontalScrollIndicator={false}
+                    data={product.thumbnail_urls}
+                    getItemLayout={(data, index) => ({ length: windowWidth, offset: windowWidth*index, index })}
+                    keyExtractor={({ item, index }) => index}
+                    renderItem={({ item, index }) => (
+                        <CachedImage style={{ width: windowWidth, height: windowWidth, alignSelf: 'center' }} source={{ uri: item }} key={index} />
+                    )}
+                />
+                <View style={{ paddingTop: 10, paddingHorizontal: 20 }}>
+                    <View style={{ flexDirection: 'row', marginBottom: 5 }}>
+                        <View style={{ flex: 5 }}>
+                            <View style={{ flex: 1 }}><Text style={styles.productInfoTitle}>{product.name}</Text></View>
                         </View>
-                        <Divider style={{ color: 'black', marginVertical: 20 }} />
-                        <View style={{ flexDirection: 'row' }}>
-                            <View style={{ flex: 5 }}>
-                                <Text style={styles.productSoldBy}>{product.sold_by.id}</Text>
-                            </View>
-                            <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                                {
-                                    product.sold_by.id === currentUser.username ? 
-                                    <Feather name="inbox" size={24} color="black" onPress={goToInboxFiltered} /> :
-                                    <AntDesign name="message1" size={24} color="black" onPress={goToChat} />
-                                }
-                            </View>
+                        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
+                            <Text>{product.favorited_by.length}</Text>
+                            {
+                                isFavorited ? 
+                                <FontAwesome name="heart" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} /> :
+                                <FontAwesome name="heart-o" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} />
+                            }
                         </View>
-                        <Text style={{fontSize: 16, }}>{product.description}</Text>
                     </View>
-                </ScrollView>
-            )
-        } else {
-            return (
-                <KeyboardAvoidingView style={styles.container} keyboardVerticalOffset = {100}>
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View style={{ padding: 20 }}>
-                            <Input
-                                style={{ marginBottom: 10, backgroundColor: 'white' }}
-                                onChangeText={setName}
-                                value={name}
-                            />
-                            <Input
-                                style={{ marginBottom: 10, backgroundColor: 'white' }}
-                                onChangeText={setPrice}
-                                value={price}
-                                keyboardType="numeric"
-                                accessoryLeft={() => <Text>$</Text>}
-                            />
-                            <Text style={styles.productSoldBy}>sold by: {product.sold_by.id}</Text>
-                            <Divider style={{ color: 'black' }} />
-                            <Text style={{padding: 15, paddingBottom: 20, fontSize: 18, fontWeight: '500'}}>Product Detail</Text>
-                            <Input
-                                style={{ backgroundColor: 'white' }}
-                                multiline={true}
-                                maxLength={200}
-                                textStyle={{ minHeight: 64 }}
-                                onChangeText={setDescription}
-                                value={description}
-                            />
-                            <View style={{ alignItems: 'center' }}>
-                                <Button
-                                    style={styles.button}
-                                    onPress={() => { Keyboard.dismiss(); setCameraOpen(true); }}
-                                    status='success'
-                                >
-                                    {imageURI ? 'Re-add Photo' : 'Add Photo'}
-                                </Button>
-                                <Modal visible={cameraOpen} backdropStyle={{ backgroundColor: 'transparent'}}>
-                                    <CameraView closeCamera={() => setCameraOpen(false)} setImageURI={setImageURI} />
-                                </Modal>
-                                {imageURI && <Image style={styles.image} source={{ uri: imageURI }} />}
-                            </View>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}><Text style={styles.title}>Condition: </Text><Text>{product.condition}</Text></View>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}><Text style={styles.title}>Brand: </Text><Text>{product.brand}</Text></View>
+                    <Divider style={{ color: 'black', marginVertical: 20 }} />
+                    <View style={{ flexDirection: 'row' }}>
+                        <View style={{ flex: 5 }}>
+                            <Text style={styles.productSoldBy}>{product.sold_by.id}</Text>
                         </View>
-                    </TouchableWithoutFeedback>
-                </KeyboardAvoidingView>
-            )
-        }
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                            {
+                                product.sold_by.id === currentUser.username ? 
+                                <Feather name="inbox" size={24} color="black" onPress={goToInboxFiltered} /> :
+                                <AntDesign name="message1" size={24} color="black" onPress={goToChat} />
+                            }
+                        </View>
+                    </View>
+                    <Text style={{ fontSize: 16 }}>{product.description}</Text>
+                </View>
+            </ScrollView>
+        )
     }
 
     return (
         <SafeAreaView style={styles.container}>
-            <TouchableOpacity style={styles.floatingBtn}> 
-                <Text style={{ marginRight: 8 }}>{numInCart}</Text>
-                <Ionicons name="eye-outline" size={24} color="black" />
-            </TouchableOpacity>
             <View style={{ flex: 10 }}>
                 {getView()}
             </View>
             <View style={{ flex: 1}}>
-                {
-                    editMode ? 
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-                        <Feather name="check" size={30} color="black" style={[styles.buttonStyle, { marginRight: 15, backgroundColor: '#C6D57E' }]} onPress={handleEditSave} />
-                        <MaterialCommunityIcons name="cancel" size={30} color="black" style={[styles.buttonStyle, { marginLeft: 15, backgroundColor: '#D57E7E' }]} onPress={() => setEditMode(false)} />
-                    </View> :
-                    <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 20, paddingTop: 10, borderTopColor: 'black', borderTopWidth: 0.4 }}>
-                        <View style={{flex: 1, justifyContent: 'center'}}>
-                            <Text style={styles.productInfoPrice}>${GeneralHelper.numberWithCommas(product.price)}</Text>
-                        </View>
-                        <View style={{ flex: 1, alignSelf: 'center', justifyContent: 'center' }}>
-                            {getButton()}
-                        </View>
+                <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 20, paddingTop: 10, borderTopColor: 'black', borderTopWidth: 0.4 }}>
+                    <View style={{flex: 1, justifyContent: 'center'}}>
+                        <Text style={styles.productInfoPrice}>${GeneralHelper.numberWithCommas(product.price)}</Text>
                     </View>
-                }
-                
+                    <View style={{ flex: 1, alignSelf: 'center', justifyContent: 'center' }}>
+                        {getButton()}
+                    </View>
+                </View>
             </View>
         </SafeAreaView>
     )
@@ -395,12 +322,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 10,
         paddingHorizontal: 15,
-        alignSelf: 'center'
+        alignSelf: 'center',
+        zIndex: 10
     },
     actionButtonStyle: { 
         alignSelf: 'flex-end',
         backgroundColor: 'black', 
         borderWidth: 0, 
-        borderRadius: 0 
-    }
+        borderRadius: 5
+    },
+    title: {
+        fontSize: 15,
+        color: 'grey',
+    },
 })

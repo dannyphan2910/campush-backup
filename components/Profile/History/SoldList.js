@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react'
 import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { UserContext } from '../../../context/user_context'
 import { db } from '../../../firebase'
-import { GeneralHelper } from '../../../helper/helper'
+import { GeneralHelper, ProductHelper } from '../../../helper/helper'
 
 export default function SoldList() {
     const { currentUser } = useContext(UserContext)
@@ -44,7 +44,7 @@ export default function SoldList() {
 
     const productsView = (
         <ScrollView refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
-            {GeneralHelper.getProductCardsLong(soldProducts)}
+            {ProductHelper.getProductCardsLong(soldProducts)}
         </ScrollView>
     )
 

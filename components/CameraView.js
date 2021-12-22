@@ -4,17 +4,18 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Dimensions, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { Dimensions, Keyboard, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { ImageHelper } from '../helper/helper';
 
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
 
-export default function CameraView({ closeCamera, setImageURI }) {
+export default function CameraView({ closeCamera, addImageURI }) {
     const [hasPermission, setHasPermission] = useState(null);
     const [cameraRef, setCameraRef] = useState(null)
     const [type, setType] = useState(Camera.Constants.Type.back);
+
+    Keyboard.dismiss()
 
     useEffect(() => {
         (async () => {
@@ -46,7 +47,7 @@ export default function CameraView({ closeCamera, setImageURI }) {
             console.log(photo)
 
             const uri = await ImageHelper.compressImage(photo.uri);
-            setImageURI(uri);
+            addImageURI(uri);
             closeCamera()
         }
     }
@@ -63,7 +64,7 @@ export default function CameraView({ closeCamera, setImageURI }) {
 
         if (!result.cancelled) {
             const uri = await ImageHelper.compressImage(result.uri);
-            setImageURI(uri);
+            addImageURI(uri);
             closeCamera()
         }
     };
