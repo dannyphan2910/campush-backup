@@ -1,9 +1,9 @@
-import { Avatar, Divider, Input, Modal } from '@ui-kitten/components'
+import { Avatar, Divider, Input, Modal, Button } from '@ui-kitten/components'
 import React, { useContext, useState } from 'react'
 import { Alert, Keyboard, KeyboardAvoidingView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
 import { UserContext } from '../../context/user_context'
 import { ImageHelper } from '../../helper/helper'
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { db, firebaseStorage } from '../../firebase'
 import CameraView from '../CameraView'
 import storage from '../../storage/storage';
@@ -181,11 +181,34 @@ export default function Account() {
                     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
                         {
                             editMode ? 
-                            <View style={{ flexDirection: 'row' }}>
-                                <Feather name="check" size={30} color="black" style={[styles.buttonStyle, { marginRight: 15, backgroundColor: '#C6D57E' }]} onPress={handleEdit} />
-                                <MaterialCommunityIcons name="cancel" size={30} color="black" style={[styles.buttonStyle, { marginLeft: 15, backgroundColor: '#D57E7E' }]} onPress={handleCancel} />
+                            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', }}>
+                                <View style={{ flex: 1 }}>
+                                    <Button
+                                        disabled={!(firstName && lastName && avatarURL)}
+                                        style={[styles.button, { width: '75%'}]}
+                                        onPress={handleEdit}
+                                        status='info'
+                                    >
+                                        Save Changes
+                                    </Button>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Button
+                                        style={[styles.button, { width: '75%'}]}
+                                        onPress={handleCancel}
+                                        status='info'
+                                    >
+                                        Cancel
+                                    </Button>
+                                </View>
                             </View> :
-                            <Feather name="edit-2" size={30} color="black" style={[styles.buttonStyle, { backgroundColor: '#FFE1AF' }]} onPress={() => setEditMode(true)} />
+                            <Button
+                                style={styles.button}
+                                onPress={() => setEditMode(true)}
+                                status='info'
+                            >
+                                Edit Account
+                            </Button>
                         }
                     </View>
                 </View>
@@ -225,5 +248,11 @@ const styles = StyleSheet.create({
         textAlign: 'center', 
         paddingTop: 15, 
         overflow:'hidden'
-    }
+    },
+    button: {
+        alignSelf: 'center',
+        backgroundColor: 'black',
+        borderWidth: 0,
+        borderRadius: 5
+    },
 })

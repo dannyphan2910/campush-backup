@@ -332,7 +332,7 @@ function AddPaymentCard() {
                             />
                         </View>
                     </View>
-                    <Button style={{ marginVertical: 15 }} onPress={handleSave} disabled={buttonDisabled}>Save Card</Button>
+                    <Button style={{ marginVertical: 15, backgroundColor: buttonDisabled ? 'lightgray' : 'black', borderWidth: 0 }} onPress={handleSave} disabled={buttonDisabled}>Save Card</Button>
                 </View>
             </TouchableWithoutFeedback>
         </KeyboardAvoidingView>

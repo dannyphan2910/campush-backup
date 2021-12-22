@@ -29,13 +29,11 @@ export default function Home() {
                         if (!querySnapshot.empty) {
                             let products = []
                             querySnapshot.forEach((productSnapshot) => {
-                                // var random_boolean = Math.random() < 0.5;
-                                // if (!productSnapshot.get('purchased_by')) {
-                                //     if (random_boolean) {
-                                        const product = productSnapshot.data();
-                                        products.push(product)
-                                //     }
-                                // }
+                                if (!productSnapshot.get('purchased_by') 
+                                    && productSnapshot.get('sold_by').id !== currentUser.username) {
+                                    const product = productSnapshot.data();
+                                    products.push(product)
+                                }
                             });
                             setFeatureProducts(products)
                         } else {
@@ -146,7 +144,7 @@ export default function Home() {
                     <SwipeCards
                         cards={featuredProducts}
                         renderCard={(product) => getDeckCard(product)}
-                        keyExtractor={(cardData) => cardData.text}
+                        keyExtractor={(product) => product.id}
                         loop={true}
                         renderNoMoreCards={() => (
                             <Card>
@@ -174,10 +172,10 @@ export default function Home() {
                     <Pressable 
                         onPress={() => navigation.navigate('Favorites')}
                         style={{ flex: 1, flexDirection: 'row', borderWidth: 1, borderRadius: 10, justifyContent: 'center', alignItems: 'center', padding: 20 }} >
-                        <View style={{ flex: 5 }}>
-                            <Text style={{ fontSize: 15, fontWeight: '600' }}>GO TO YOUR FAVORITES ({numFavorites})</Text>
+                        <View style={{ flex: 5, alignItems: 'flex-start', justifyContent: 'center' }}>
+                            <Text style={{ fontSize: 16, fontWeight: '600' }}>GO TO YOUR FAVORITES ({numFavorites})</Text>
                         </View>
-                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                        <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
                             <Feather name="arrow-right-circle" size={24} color="black" />
                         </View>
                     </Pressable>

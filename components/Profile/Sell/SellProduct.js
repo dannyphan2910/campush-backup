@@ -1,6 +1,6 @@
 import { Button, Input, Modal, Select, SelectItem, Text } from '@ui-kitten/components';
 import React, { useContext, useState } from 'react';
-import { Alert, Dimensions, Image, Keyboard, KeyboardAvoidingView, StyleSheet, TouchableWithoutFeedback, View, Pressable, Animated, FlatList } from 'react-native';
+import { Alert, Dimensions, Image, Keyboard, KeyboardAvoidingView, StyleSheet, TouchableWithoutFeedback, View, Pressable, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/core';
 import { db, firebaseStorage } from '../../../firebase';
 import { ImageHelper, ProductHelper } from '../../../helper/helper';
@@ -234,7 +234,7 @@ export default function SellProduct({ route }) {
                                             onPress={handleEditSave}
                                             status='info'
                                         >
-                                            Save Product
+                                            Save Changes
                                         </Button>
                                     </View>
                                     <View style={{ flex: 1 }}>
