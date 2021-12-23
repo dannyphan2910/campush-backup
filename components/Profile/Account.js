@@ -7,6 +7,7 @@ import { Feather } from '@expo/vector-icons';
 import { db, firebaseStorage } from '../../firebase'
 import CameraView from '../CameraView'
 import storage from '../../storage/storage';
+import Loading from '../Loading'
 
 
 export default function Account() {
@@ -19,7 +20,11 @@ export default function Account() {
 
     const [editMode, setEditMode] = useState(false)
 
+    const [loading, setLoading] = useState(false)
+
     const handleEdit = async () => {
+        setLoading(true)
+
         let url = currentUser.avatar_url
         let uploadedImage = false
         if (avatarURL !== url) {
@@ -61,6 +66,7 @@ export default function Account() {
                     })
             })
             .catch(err => Alert.alert('Edit unsuccessfully ' + err))
+            .finally(() => setLoading(false))
     }
 
     const handleEditAvatar = () => {
@@ -74,6 +80,10 @@ export default function Account() {
         setFirstName(currentUser.first_name)
         setLastName(currentUser.last_name)
         setEditMode(false)
+    }
+
+    if (loading) {
+        return <Loading />
     }
 
     return (

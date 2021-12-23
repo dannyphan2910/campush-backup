@@ -9,6 +9,7 @@ import { FontAwesome, Feather, AntDesign, Ionicons } from '@expo/vector-icons';
 import firebase from "firebase";
 import CachedImage from './CachedImage';
 import { FlatList } from 'react-native-gesture-handler';
+import Loading from './Loading';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -24,10 +25,12 @@ export default function Product({ route }) {
     const [isInCart, setIsInCart] = useState(false)
 
     const [refresh, setRefresh] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         const getProduct = () => {
             if (id && currentUser) {
+                setLoading(true)
                 const productRef = db.collection('products').doc(id)
                 productRef.get().then((snapshot) => {
                         if (snapshot.exists) {
@@ -62,6 +65,7 @@ export default function Product({ route }) {
                             }
                         }
                     })
+                setLoading(false)
             }
         }
         getProduct()
@@ -69,6 +73,10 @@ export default function Product({ route }) {
 
     if (!product || !currentUser) {
         return null
+    }
+
+    if (loading) {
+        return <Loading />
     }
 
     const handleEdit = () => navigation.navigate('SellProduct', { isEditMode: true, product: product })

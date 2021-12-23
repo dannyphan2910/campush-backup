@@ -1,26 +1,27 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { GeneralHelper, ImageHelper, ProductHelper } from '../../../helper/helper';
+import { ProductHelper } from '../../../helper/helper';
 import { db, firebaseStorage } from '../../../firebase';
 import { UserContext } from '../../../context/user_context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons'; 
-import { useNavigation } from "@react-navigation/core";
 import firebase from "firebase";
+import Loading from '../../Loading';
 
 export default function SellDashboard({ route }) {
     const { currentUser } = useContext(UserContext)
 
-    const navigation = useNavigation()
-
     const [userProducts, setUserProducts] = useState([])
+
     const [refresh, setRefresh] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     const swipeRefs = useRef([])
  
     useEffect(() => {
         const getUserProducts = () => {
             if (currentUser) {
+                setLoading(true)
                 db.collection('users_products').doc(currentUser.username)
                     .onSnapshot(snapshot => {
                         if (snapshot.exists) {
@@ -39,6 +40,7 @@ export default function SellDashboard({ route }) {
                         }
                         setRefresh(false)
                     })
+                setLoading(false)
             }
         }
         getUserProducts()
@@ -46,6 +48,10 @@ export default function SellDashboard({ route }) {
 
     if (!currentUser) {
         return null
+    }
+
+    if (loading) {
+        return <Loading />
     }
 
     const noProductsView = (
@@ -77,8 +83,10 @@ export default function SellDashboard({ route }) {
     };
 
     const handleDelete = (index) => {
-        const product = userProducts[index]
+        setLoading(true)
 
+        const product = userProducts[index]
+        
         db.runTransaction((transaction) => {
             const userProductsRef = db.collection('users_products').doc(currentUser.username)
             const productRef = db.collection('products').doc(product.id)
@@ -100,11 +108,9 @@ export default function SellDashboard({ route }) {
                 product.thumbnail_urls.forEach(url => firebaseStorage.refFromURL(url).delete())
             })
         })
-        .then(() => {
-            Alert.alert('Remove product successfully')
-            navigation.navigate('Profile')
-        })
+        .then(() => { Alert.alert('Remove product successfully') })
         .catch(err => { Alert.alert('Data could not be removed: ' + err); console.error(err) })
+        .finally(() => setLoading(false))
     }
 
     const handleSwipeDelete = (index) => {

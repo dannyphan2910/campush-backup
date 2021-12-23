@@ -1,25 +1,29 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { Alert, Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { GeneralHelper, ProductHelper } from '../../helper/helper';
-import { db, firebaseStorage } from '../../firebase';
+import { Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ProductHelper } from '../../helper/helper';
+import { db } from '../../firebase';
 import { UserContext } from '../../context/user_context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons'; 
 import firebase from "firebase";
+import Loading from '../Loading';
 
 export default function Favorites() {
     const { currentUser } = useContext(UserContext)
 
     const [favoritedProducts, setFavoritedProducts] = useState([])
+    
     const [refresh, setRefresh] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     const swipeRefs = useRef([])
  
     useEffect(() => {
         const getUserProducts = () => {
             if (currentUser) {
-                db.collection('users_favorites').doc(currentUser.username)
-                    .onSnapshot(snapshot => {
+                setLoading(true)
+                db.collection('users_favorites').doc(currentUser.username).get()
+                    .then(snapshot => {
                         if (snapshot.exists) {
                             const productsRefs = snapshot.get('products')
                             if (productsRefs) {
@@ -35,7 +39,8 @@ export default function Favorites() {
                             console.log('No favorited products found for username ' + currentUser.username)
                         }
                         setRefresh(false)
-                    })
+                    })  
+                    .finally(() => setLoading(false))
             }
         }
         getUserProducts()
@@ -43,6 +48,10 @@ export default function Favorites() {
 
     if (!currentUser) {
         return null
+    }
+
+    if (loading) {
+        return <Loading />
     }
 
     const noProductsView = (
@@ -74,6 +83,8 @@ export default function Favorites() {
     };
 
     const handleSwipeDelete = (index) => {
+        setLoading(true)
+
         const product = favoritedProducts[index]
 
         db.runTransaction((transaction) => {
@@ -89,6 +100,7 @@ export default function Favorites() {
         })
         .then(() => setRefresh(true))
         .catch(err => console.error(err))
+        .finally(() => setLoading(false))
     }
 
     const productCards = ProductHelper.getProductCardsLong(favoritedProducts)

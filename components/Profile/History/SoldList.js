@@ -2,17 +2,21 @@ import React, { useContext, useEffect, useState } from 'react'
 import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { UserContext } from '../../../context/user_context'
 import { db } from '../../../firebase'
-import { GeneralHelper, ProductHelper } from '../../../helper/helper'
+import { ProductHelper } from '../../../helper/helper'
+import Loading from '../../Loading'
 
 export default function SoldList() {
     const { currentUser } = useContext(UserContext)
 
     const [soldProducts, setSoldProducts] = useState([])
+
     const [refresh, setRefresh] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         const getSoldProducts = () => {
             if (currentUser) {
+                setLoading(true)
                 db.collection('users_products').doc(currentUser.username).get()
                     .then(snapshot => {
                         if (snapshot.exists) {
@@ -31,10 +35,15 @@ export default function SoldList() {
                         }
                         setRefresh(false)
                     })
+                    .finally(() => setLoading(false))
             }
         }
         getSoldProducts()
     }, [refresh])
+
+    if (loading) {
+        return <Loading />
+    }
 
     const noProductsView = (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Divider, Text } from '@ui-kitten/components';
 import { FontAwesome } from '@expo/vector-icons';
 import CachedImage from '../CachedImage';
+import Loading from '../Loading'
 
 
 export default function MessageView({ route }) {
@@ -20,6 +21,8 @@ export default function MessageView({ route }) {
     const [product, setProduct] = useState()
     const [seller, setSeller] = useState() 
     const [messages, setMessages] = useState([]);
+
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
         const getProduct = () => {
@@ -50,8 +53,10 @@ export default function MessageView({ route }) {
             }
         }
 
+        setLoading(true)
         getProduct()
         getSellerProfile()
+        setLoading(false)
 
         // setMessages([
         //     {
@@ -76,8 +81,11 @@ export default function MessageView({ route }) {
         return null
     }
 
+    if (loading) {
+        return <Loading />
+    }
+
     const productCard = (() => {
-        console.log(product)
         return (
             <TouchableOpacity style={{ height: '100%', backgroundColor: 'white', padding: 15 }} key={product.id} onPress={() => navigation.navigate('Product', { id: product.id })}>
                 <View style={{ flex: 1, flexDirection: 'row' }}>

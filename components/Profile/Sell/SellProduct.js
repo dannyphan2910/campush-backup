@@ -8,6 +8,7 @@ import { UserContext } from '../../../context/user_context';
 import CameraView from '../../CameraView'
 import firebase from "firebase";
 import { AntDesign } from '@expo/vector-icons'; 
+import Loading from '../../Loading';
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -31,9 +32,11 @@ export default function SellProduct({ route }) {
     const [cameraOpen, setCameraOpen] = useState(false)
     const [imageURIs, setImageURIs] = useState(isEditMode && product ? product.thumbnail_urls : [])
 
+    const [loading, setLoading] = useState(false)
+
     const handleSubmit = () => {
         Keyboard.dismiss()
-
+        setLoading(true)
         db.runTransaction(async (transaction) => {
             // upload photo to Firebase Storage
             const urls = await Promise.all(imageURIs.map(imageURI => ImageHelper.uploadImageAsync(imageURI)))
@@ -76,10 +79,12 @@ export default function SellProduct({ route }) {
             Alert.alert('Data could not be saved: ' + err)
             console.error(err) 
         })
+        .finally(() => setLoading(false))
     }
 
     const handleEditSave = async () => {
         if (isEditMode && product) {
+            setLoading(true)
             // delete all removed images from the storage
             await Promise.all(product.thumbnail_urls.map(async (productURI) => {
                 if (!imageURIs.includes(productURI)) {
@@ -109,6 +114,7 @@ export default function SellProduct({ route }) {
             db.collection('products').doc(product.id).update(updates)
                 .then(() => { Alert.alert('Edit successfully'); navigation.navigate('Product', { id: product.id, refresh: true }) })
                 .catch(err => { Alert.alert('Edit unsuccessfully ' + err); console.error(err) })
+                .finally(() => setLoading(false))
         }
     }
 
@@ -122,6 +128,10 @@ export default function SellProduct({ route }) {
         const removedURI = currURIs.splice(index, 1)
         setImageURIs(currURIs)
         return removedURI
+    }
+
+    if (loading) {
+        return <Loading />
     }
 
     return (

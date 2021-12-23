@@ -103,7 +103,7 @@ export default function App() {
     <SafeAreaProvider>
       <UserContext.Provider value={{ currentUser, setCurrentUser }}>
         <ApplicationProvider {...eva} theme={eva.light}>
-          <NavigationContainer>
+          <NavigationContainer> 
             <Stack.Navigator>
               <Stack.Screen name="Login" options={{ header: props => null }} component={Login} />
               <Stack.Screen name="Main" options={{ header: props => null }} component={Main} />

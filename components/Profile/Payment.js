@@ -7,6 +7,7 @@ import { db } from '../../firebase';
 import storage from '../../storage/storage';
 import { Ionicons, Fontisto, MaterialCommunityIcons } from '@expo/vector-icons'; 
 import { GeneralHelper } from '../../helper/helper';
+import Loading from '../Loading';
 
 const windowWidth = Dimensions.get('window').width;
 const LAMBDA_URL = 'https://j0uhzvsibf.execute-api.us-east-2.amazonaws.com/'
@@ -15,12 +16,14 @@ export default function Payment() {
     const { currentUser, setCurrentUser } = useContext(UserContext)
 
     const [refresh, setRefresh] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     const [paymentMethods, setPaymentMethods] = useState([])
 
     useEffect(() => {
         const retrievePaymentMethods = async () => {
             if (currentUser.stripe_customer_id) {
+                setLoading(true)
                 var response = await fetch(`${LAMBDA_URL}/retrieve_payment_methods`, {
                     method: 'POST',
                     headers: {
@@ -33,10 +36,15 @@ export default function Payment() {
                 const { data } = await response.json()
                 setPaymentMethods(data)
                 setRefresh(false)
+                setLoading(false)
             }
         }
         retrievePaymentMethods()
     }, [refresh, currentUser.has_payment])
+
+    if (loading) {
+        return <Loading />
+    }
 
     if (!currentUser.stripe_customer_id || !currentUser.has_payment 
         || !paymentMethods || paymentMethods.length == 0) {
@@ -44,8 +52,8 @@ export default function Payment() {
     }
     
     const detachPaymentMethod = (id) => {
-        console.log(currentUser.stripe_customer_id, id)
         if (currentUser.stripe_customer_id) {
+            setLoading(true)
             fetch(`${LAMBDA_URL}/detach_payment_method`, {
                 method: 'POST',
                 headers: {
@@ -71,6 +79,7 @@ export default function Payment() {
                 setRefresh(true)
             })
             .catch(err => console.error(err))
+            .finally(() => setLoading(false))
         }
     }
 
@@ -157,7 +166,6 @@ export default function Payment() {
         )
     })
 
-
     return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: 'white'  }}>
             {paymentCardList}
@@ -209,13 +217,11 @@ function AddPaymentCard() {
               });
             const data = await response.json();
             const { client_secret } = data
-            console.log(data)
             return client_secret;
         }
-
+        
         // 1. fetch user's Stripe Customer ID
         const customerId = await getStripeCustomerId()
-        console.log(customerId)
         // 2. fetch Intent Client Secret from backend - create a Customer object if not available
         const clientSecret = await createSetupIntentOnBackend(customerId);  
         // 3. Gather customer billing information (ex. email)
@@ -262,8 +268,6 @@ function AddPaymentCard() {
 
     const buttonDisabled = loading || !card || !card.complete
         || !(address.length > 0 && city.length > 0 && state.length > 0 && postalCode.length > 0)
-
-    console.log(state)
 
     return (
         <KeyboardAvoidingView style={styles.container}>

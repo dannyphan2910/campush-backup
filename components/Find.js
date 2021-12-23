@@ -1,7 +1,7 @@
 import { Button, Divider, IndexPath, Input, Select, SelectItem, Toggle } from '@ui-kitten/components'
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Feather } from '@expo/vector-icons';
-import { StyleSheet, View, Text, SafeAreaView, ScrollView, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Pressable, Dimensions } from 'react-native'
+import { StyleSheet, View, Text, SafeAreaView, ScrollView, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Pressable, Dimensions, StatusBar } from 'react-native'
 import {  ProductHelper } from '../helper/helper';
 import { db } from '../firebase';
 import { UserContext } from '../context/user_context';
@@ -126,8 +126,9 @@ export default function Find() {
         }
 
         return (
-            <View
+            <Pressable
                 style={{
+                    backgroundColor: 'white',
                     borderColor: 'black',
                     borderWidth: 1,
                     borderBottomWidth: 0,
@@ -137,6 +138,7 @@ export default function Find() {
                     padding: 16,
                     height: windowHeight*0.5
                 }}
+                onPress={Keyboard.dismiss}
             >
                 <View style={{ marginBottom: 5 }}>
                     <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '600' }}>FILTERS</Text>
@@ -206,7 +208,7 @@ export default function Find() {
                         </View>
                     </View>
                 </View>
-            </View>
+            </Pressable>
         )
     };
 
@@ -220,8 +222,8 @@ export default function Find() {
     }
 
     return (
-        <KeyboardAvoidingView style={styles.container}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView style={styles.container} keyboardVerticalOffset={StatusBar.currentHeight} behavior="padding">
+            <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); sheetRef?.current.snapTo(1) }}>
                 <SafeAreaView style={[styles.container, { paddingTop: 50, marginHorizontal: 10 }]}>
                     <View style={{ flex: 2, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' }}>
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -246,6 +248,7 @@ export default function Find() {
                 snapPoints={['50%', 0]}
                 initialSnap={1}
                 renderContent={renderContent}
+                
             />
         </KeyboardAvoidingView>
     )
