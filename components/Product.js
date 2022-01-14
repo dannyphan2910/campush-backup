@@ -1,28 +1,38 @@
 import { useNavigation } from '@react-navigation/core';
-import { Button, Divider, Text } from '@ui-kitten/components';
-import React, { useContext, useEffect, useState } from 'react'
-import { Alert, Dimensions, RefreshControl, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native'
+import { Button, Divider, Input, Text } from '@ui-kitten/components';
+import React, { useContext, useEffect, useRef, useState } from 'react'
+import { KeyboardAvoidingView, Alert, Dimensions, Pressable, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, Keyboard } from 'react-native'
 import { UserContext } from '../context/user_context';
-import { db } from '../firebase';
+import { db, realtimedb } from '../firebase';
 import { GeneralHelper } from '../helper/helper';
 import { FontAwesome, Feather, AntDesign, Ionicons } from '@expo/vector-icons';
 import firebase from "firebase";
 import CachedImage from './CachedImage';
 import { FlatList } from 'react-native-gesture-handler';
 import Loading from './Loading';
+import BottomSheet from 'reanimated-bottom-sheet';
+import { AirbnbRating, Rating } from 'react-native-ratings';
 
 const windowWidth = Dimensions.get('window').width;
+const windowHeight = Dimensions.get('window').height;
 
 export default function Product({ route }) {
     const { id } = route.params;
     const { currentUser } = useContext(UserContext)
 
     const navigation = useNavigation()
+    const sheetRef = useRef();
 
     const [product, setProduct] = useState()
+    const [seller, setSeller] = useState()
+    const [feedback, setFeedback] = useState()
     const [isFavorited, setIsFavorited] = useState(false)
     const [numInCart, setNumInCart] = useState(0) 
     const [isInCart, setIsInCart] = useState(false)
+
+    const [rating, setRating] = useState(3)
+    const [details, setDetails] = useState('')
+    const [feedbackOpen, setFeedbackOpen] = useState(false)
 
     const [refresh, setRefresh] = useState(true)
     const [loading, setLoading] = useState(false)
@@ -40,6 +50,11 @@ export default function Product({ route }) {
                                 .map(userRef => userRef.id)
                                 .includes(currentUser.username)
                             setIsFavorited(favorited)
+
+                            product.sold_by.get().then(snapshot => setSeller(snapshot.data()))
+                            if (product.has_feedback) {
+                                product.feedback.get().then(snapshot => setFeedback(snapshot.data()))
+                            }
                         } else {
                             console.log('No product found for id ' + id)
                         }
@@ -65,6 +80,7 @@ export default function Product({ route }) {
                             }
                         }
                     })
+
                 setLoading(false)
             }
         }
@@ -110,12 +126,18 @@ export default function Product({ route }) {
 
             const addFavorite = () => {
                 transaction.update(userFavoritesRef, { products: firebase.firestore.FieldValue.arrayUnion(productRef) })
-                    .update(productRef, { favorited_by: firebase.firestore.FieldValue.arrayUnion(userRef) })
+                    .update(productRef, { 
+                        favorited_by: firebase.firestore.FieldValue.arrayUnion(userRef),
+                        favorited_count: firebase.firestore.FieldValue.increment(1)
+                    })
             }
 
             const removeFavorite = () => {
                 transaction.update(userFavoritesRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
-                    .update(productRef, { favorited_by: firebase.firestore.FieldValue.arrayRemove(userRef) })
+                    .update(productRef, { 
+                        favorited_by: firebase.firestore.FieldValue.arrayRemove(userRef),
+                        favorited_count: firebase.firestore.FieldValue.increment(-1)
+                    })
             }
 
             return transaction.get(userFavoritesRef).then(snapshot => {
@@ -145,7 +167,11 @@ export default function Product({ route }) {
         if (isInCart) {
             return <Button style={styles.actionButtonStyle} onPress={() => navigation.navigate('Cart')}>IN CART</Button>
         } else if (product.purchased_by) {
-            return <Button style={[styles.actionButtonStyle, { backgroundColor: 'lightgray' }]} disabled>SOLD</Button>
+            if (!product.has_feedback) {
+                return <Button style={styles.actionButtonStyle} onPress={handleOpenTab}>RATE</Button>
+            } else {
+                return <Button style={[styles.actionButtonStyle, { backgroundColor: 'lightgray' }]} disabled>SOLD</Button>
+            }
         } else if (product.sold_by.id === currentUser.username) {
             return <Button style={styles.actionButtonStyle} onPress={handleEdit}>EDIT</Button>
         } else {
@@ -154,46 +180,75 @@ export default function Product({ route }) {
     }
 
     const goToChat = () => {
+        const navigateToConversation = () => {
+            setLoading(true)
 
-        // const navigateToConversation = () => {
-        //     const productRef = db.collection('products').doc(product.id)
-        //     const sellerRef = db.collection('users').doc(product.sold_by.id)
-        //     const userRef = db.collection('users').doc(currentUser.username)
+            const sender = currentUser.username
+            const sendee = product.sold_by.id
+            
+            const createNewConversation = () => {
+                let updates = {}
 
-        //     db.collection('conversations')
-        //         .where('details.product', '==', productRef)
-        //         .where('details.sold_by', '==', sellerRef)
-        //         .where('details.asked_by', '==', userRef)
-        //         .limit(1)
-        //         .get()
-        //         .then(querySnapshot => {
-        //             if (!querySnapshot || querySnapshot.empty) {
-        //                 const convoRef = db.collection('conversations').doc()
-        //                 const body = {
-        //                     id: convoRef.id,
-        //                     details: {
-        //                         product: productRef,
-        //                         sold_by: sellerRef,
-        //                         asked_by: userRef
-        //                     },
-        //                     messages: []
-        //                 }
-                        
-        //                 navigation.navigate('Chat', { conversationInfo: body })
-        //             } else if (querySnapshot.size == 1) {
-        //                 querySnapshot.forEach(convoSnapshot => {
-        //                     if (convoSnapshot) {
-        //                         convoSnapshot.data
-        //                     }
-        //                 })
-        //             } else {
-        //                 console.error('Found multiple conversations: ', querySnapshot.docs.map(doc => doc.id))
-        //             }
-        //         })
-        // }
+                const newConvoRef = realtimedb.ref('conversations').push()
+                const convoId = newConvoRef.key
+
+                const convo = {
+                    id: convoId,
+                    users: [
+                        sender,
+                        sendee
+                    ],
+                    messages: [],
+                    is_archived: false,
+                    created_at: firebase.database.ServerValue.TIMESTAMP,
+                    last_updated: firebase.database.ServerValue.TIMESTAMP,
+                }
+                updates[`/conversations/${convoId}`] = convo
+
+                updates[`/users_conversations/${sender}/${convoId}`] = {
+                    id: convoId,
+                    to_username: sendee,
+                    is_archived: false,
+                    last_updated: firebase.database.ServerValue.TIMESTAMP,
+                }
+
+                updates[`/users_conversations/${sendee}/${convoId}`] = {
+                    id: convoId,
+                    to_username: sender,
+                    is_archived: false,
+                    last_updated: firebase.database.ServerValue.TIMESTAMP,
+                }
+
+                realtimedb.ref().update(updates)
+                
+                return convo
+            }
+
+            realtimedb.ref('users_conversations').child(sender)
+                .orderByChild('to_username').equalTo(sendee)
+                .once('value')
+                .then(snapshot => {
+                    let convo = null
+                    if (!snapshot.exists()) {
+                        convo = createNewConversation()
+                    } else if (snapshot.numChildren() > 1) {
+                        throw Error('multiple conversations found: ' + snapshot.numChildren())
+                    } else {
+                        convo = Object.values(snapshot.val())[0]
+                    }
+
+                    navigation.navigate('Chat', { 
+                        productId: id, 
+                        sendee: seller,
+                        conversation: convo
+                    })
+                })
+                .catch(err => console.error(err))
+                .finally(() => setLoading(false))
+        }
 
         if (product) {
-            navigation.navigate('Chat', { productId: id, sellerUsername: product.sold_by.id })
+            navigateToConversation()
         }
     }
 
@@ -208,73 +263,260 @@ export default function Product({ route }) {
 
     const getView = () => {
         return (
-            <ScrollView refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
-                <TouchableOpacity style={styles.floatingBtn}> 
-                    <Text style={{ marginRight: 8 }}>{numInCart}</Text>
-                    <Ionicons name="eye-outline" size={24} color="black" />
-                </TouchableOpacity>
-                <FlatList
-                    pagingEnabled
-                    horizontal={true}
-                    showsHorizontalScrollIndicator={false}
-                    data={product.thumbnail_urls}
-                    getItemLayout={(data, index) => ({ length: windowWidth, offset: windowWidth*index, index })}
-                    keyExtractor={({ item, index }) => index}
-                    renderItem={({ item, index }) => (
-                        <CachedImage style={{ width: windowWidth, height: windowWidth, alignSelf: 'center' }} source={{ uri: item }} key={index} />
-                    )}
-                />
-                <View style={{ paddingTop: 10, paddingHorizontal: 20 }}>
-                    <View style={{ flexDirection: 'row', marginBottom: 5 }}>
-                        <View style={{ flex: 5 }}>
-                            <View style={{ flex: 1 }}><Text style={styles.productInfoTitle}>{product.name}</Text></View>
+            <ScrollView style={{ flex: 1 }} refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
+                <View onStartShouldSetResponder={() => true}>
+                    <TouchableOpacity style={styles.floatingBtn}> 
+                        {
+                            !product.is_purchased ?
+                            <>
+                                <Text style={{ marginRight: 8 }}>{numInCart}</Text>
+                                <Ionicons name="eye-outline" size={24} color="black" />
+                            </> :
+                            <Text style={{ fontWeight: '600' }}>SOLD</Text>
+                        }
+                    </TouchableOpacity>
+                    <FlatList
+                        pagingEnabled
+                        horizontal={true}
+                        showsHorizontalScrollIndicator={false}
+                        data={product.thumbnail_urls}
+                        getItemLayout={(data, index) => ({ length: windowWidth, offset: windowWidth*index, index })}
+                        keyExtractor={({ item, index }) => index}
+                        renderItem={({ item, index }) => (
+                            <Pressable key={index}>
+                                <CachedImage style={{ width: windowWidth, height: windowWidth, alignSelf: 'center' }} source={{ uri: item }} />
+                            </Pressable>
+                        )}
+                    />
+                    <View style={{ paddingTop: 10, paddingHorizontal: 20 }}>
+                        <View style={{ flexDirection: 'row', marginBottom: 5 }}>
+                            <View style={{ flex: 5 }}>
+                                <View style={{ flex: 1 }}><Text style={styles.productInfoTitle}>{product.name}</Text></View>
+                            </View>
+                            <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                <Text>{product.favorited_by.length}</Text>
+                                {
+                                    isFavorited ? 
+                                    <FontAwesome name="heart" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} /> :
+                                    <FontAwesome name="heart-o" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} />
+                                }
+                            </View>
                         </View>
-                        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' }}>
-                            <Text>{product.favorited_by.length}</Text>
-                            {
-                                isFavorited ? 
-                                <FontAwesome name="heart" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} /> :
-                                <FontAwesome name="heart-o" size={24} color="black" style={{marginLeft: 10}} onPress={handleFavorite} />
-                            }
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}><Text style={styles.title}>Condition: </Text><Text>{product.condition}</Text></View>
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}><Text style={styles.title}>Brand: </Text><Text>{product.brand}</Text></View>
+                        <Divider style={{ color: 'black', marginVertical: 20 }} />
+                        <View style={{ flexDirection: 'row' }}>
+                            <View style={{ flex: 5, paddingBottom: 15, flexDirection: 'row', alignItems: 'center' }}>
+                                {seller && seller.avatar_url && 
+                                    <Pressable onPress={() => navigation.navigate('SellerProfile', { user: seller })}>
+                                        <CachedImage style={{ height: 36, width: 36, borderRadius: 18, marginRight: 10 }} source={{ uri: seller.avatar_url }} />
+                                    </Pressable>
+                                }
+                                <Pressable onPress={() => navigation.navigate('SellerProfile', { user: seller })}>
+                                    <Text style={styles.productSoldBy}>{product.sold_by.id}</Text>
+                                </Pressable>
+                            </View>
+                            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                {
+                                    product.sold_by.id === currentUser.username ? 
+                                    <Feather name="inbox" size={24} color="black" onPress={goToInboxFiltered} /> :
+                                    <AntDesign name="message1" size={24} color="black" onPress={goToChat} />
+                                }
+                            </View>
                         </View>
+                        <Text style={{ fontSize: 16 }}>{product.description}</Text>
+                    
+                        {
+                            product.is_purchased &&
+                            <View style={{ marginVertical: 20 }}>
+                                <Divider style={{ marginBottom: 20 }} />
+                                {
+                                    product.has_feedback && feedback ? 
+                                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                        <View style={{ marginBottom: 10, justifyContent: 'center', alignItems: 'center'}}>
+                                            <Text style={styles.title}>Rating: {feedback.rating}/5</Text>
+                                            <AirbnbRating 
+                                                defaultRating={feedback.rating}
+                                                isDisabled
+                                                count={5}
+                                                size={30}
+                                                showRating={false}
+                                                selectedColor='black'
+                                                unSelectedColor='gainsboro'
+                                            />
+                                        </View>
+                                        {
+                                            feedback.details && feedback.details.length > 0 &&
+                                            <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                                                <Text style={styles.title}>Feedback</Text>
+                                                <Text style={{ fontSize: 16 }}>{feedback.details}</Text>
+                                            </View>
+                                        }
+                                    </View> :
+                                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                        <Text>No feedback available.</Text>
+                                        {currentUser.username === product.purchased_by.id && <Text>Rate your experience now!</Text>}
+                                    </View> 
+                                }
+                            </View>
+                        }
                     </View>
-                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}><Text style={styles.title}>Condition: </Text><Text>{product.condition}</Text></View>
-                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}><Text style={styles.title}>Brand: </Text><Text>{product.brand}</Text></View>
-                    <Divider style={{ color: 'black', marginVertical: 20 }} />
-                    <View style={{ flexDirection: 'row' }}>
-                        <View style={{ flex: 5 }}>
-                            <Text style={styles.productSoldBy}>{product.sold_by.id}</Text>
-                        </View>
-                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                            {
-                                product.sold_by.id === currentUser.username ? 
-                                <Feather name="inbox" size={24} color="black" onPress={goToInboxFiltered} /> :
-                                <AntDesign name="message1" size={24} color="black" onPress={goToChat} />
-                            }
-                        </View>
-                    </View>
-                    <Text style={{ fontSize: 16 }}>{product.description}</Text>
                 </View>
             </ScrollView>
         )
     }
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <View style={{ flex: 10 }}>
-                {getView()}
-            </View>
-            <View style={{ flex: 1}}>
-                <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 20, paddingTop: 10, borderTopColor: 'black', borderTopWidth: 0.4 }}>
-                    <View style={{flex: 1, justifyContent: 'center'}}>
-                        <Text style={styles.productInfoPrice}>${GeneralHelper.numberWithCommas(product.price)}</Text>
+    const renderContent = () => {
+
+        const handleConfirm = () => {
+            setLoading(true)
+
+            db.runTransaction((transaction) => {
+                const productRef = db.collection('products').doc(id)
+                const userRef = db.collection('users').doc(currentUser.username)
+
+                const feedbackRef = db.collection('feedbacks').doc()
+                const fId = feedbackRef.id
+
+                const feedbackObj = {
+                    id: fId,
+                    rating: rating,
+                    details: details,
+                    by: userRef,
+                    product: productRef,
+                    created_at: firebase.firestore.FieldValue.serverTimestamp()
+                }
+                // creates a new feedback object linked to this product and this user
+                transaction.set(feedbackRef, feedbackObj)
+                // link the product object with this feedback
+                transaction.update(productRef, {
+                    feedback: feedbackRef,
+                    has_feedback: true
+                })  
+
+                return Promise.resolve()
+            })
+            .then(() => setRefresh(true))
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false))
+        }
+
+        const handleCancel = () => {
+            setRating(3)
+            setDetails('')
+            setFeedbackOpen(false)
+            sheetRef?.current.snapTo(1)
+        }
+
+        return (
+            <Pressable
+                style={{
+                    backgroundColor: 'white',
+                    borderColor: 'black',
+                    borderWidth: 1,
+                    borderBottomWidth: 0,
+                    borderRadius: 15,
+                    borderBottomLeftRadius: 0,
+                    borderBottomRightRadius: 0,
+                    padding: 16,
+                    height: windowHeight*0.5,
+                    paddingBottom: 50
+                }}
+                onPress={Keyboard.dismiss}
+            >
+                <View style={{ marginBottom: 5 }}>
+                    <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '600' }}>RATE YOUR EXPERIENCE</Text>
+                </View>
+                <Divider />
+                <View style={{ marginVertical: 10, flex: 1 }}>
+                    <View style={{ flex: 5 }}>
+                        <View style={{ flex: 1, marginBottom: 10, justifyContent: 'center', alignItems: 'center'}}>
+                            <Text style={styles.title}>Rating: {rating}/5 ({['Terrible', 'Bad', 'Okay', 'Good', 'Great'][(rating-1)]})</Text>
+                            <AirbnbRating 
+                                defaultRating={rating}
+                                count={5}
+                                size={30}
+                                showRating={false}
+                                selectedColor='black'
+                                unSelectedColor='gainsboro'
+                                onFinishRating={rating => setRating(rating)}
+                            />
+                        </View>
+                        <View style={{ flex: 2, justifyContent: 'center', alignItems: 'center' }}>
+                            <Text style={styles.title}>Feedback (optional)</Text>
+                            <Input
+                                value={details}
+                                style={{
+                                    backgroundColor: 'white'
+                                }}
+                                multiline={true}
+                                maxLength={200}
+                                textStyle={{ height: 100 }}
+                                onChangeText={setDetails}
+                                placeholder="Feedback (max 200 characters)"
+                            />  
+                        </View>
                     </View>
-                    <View style={{ flex: 1, alignSelf: 'center', justifyContent: 'center' }}>
-                        {getButton()}
+                    <View style={{ flex: 1, marginVertical: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                        <View style={{ flex: 1 }}>
+                            <Button
+                                style={[styles.actionButtonStyle, { alignSelf: 'center', width: '75%'}]}
+                                onPress={handleConfirm}
+                                status='info'
+                            >
+                                CONFIRM
+                            </Button>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Button
+                                style={[styles.actionButtonStyle, { alignSelf: 'center', width: '75%'}]}
+                                onPress={handleCancel}
+                                status='info'
+                            >
+                                CANCEL
+                            </Button>
+                        </View>
                     </View>
                 </View>
-            </View>
-        </SafeAreaView>
+            </Pressable>
+        )
+    }
+
+    const handleOpenTab = () => {
+        if (feedbackOpen) {
+            sheetRef?.current.snapTo(0)
+        } else {
+            sheetRef?.current.snapTo(1)
+        }
+        setFeedbackOpen(!feedbackOpen)
+    }
+
+    return (
+        <KeyboardAvoidingView style={styles.container} keyboardVerticalOffset={StatusBar.currentHeight} behavior="padding">
+            <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); sheetRef?.current.snapTo(1) }}>
+                <SafeAreaView style={styles.container}>
+                    <View style={{ flex: 10 }}>
+                        {getView()}
+                    </View>
+                    <View style={{ flex: 1}}>
+                        <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 20, paddingTop: 10, borderTopColor: 'black', borderTopWidth: 0.4 }}>
+                            <View style={{ flex: 1, justifyContent: 'center'}}>
+                                <Text style={styles.productInfoPrice}>${GeneralHelper.numberWithCommas(product.price)}</Text>
+                            </View>
+                            <View style={{ flex: 1, alignSelf: 'center', justifyContent: 'center' }}>
+                                {getButton()}
+                            </View>
+                        </View>
+                    </View>
+                </SafeAreaView>
+            </TouchableWithoutFeedback>
+            <BottomSheet
+                ref={sheetRef}
+                snapPoints={['50%', 0]}
+                initialSnap={1}
+                renderContent={renderContent}        
+            />
+        </KeyboardAvoidingView>
     )
 }
 
@@ -293,7 +535,6 @@ const styles = StyleSheet.create({
     productSoldBy: {
         fontSize: 16,
         fontWeight: '500',
-        paddingBottom: 15,
     },
     productInfoDetail: {
         fontSize: 24,
@@ -340,6 +581,7 @@ const styles = StyleSheet.create({
         borderRadius: 5
     },
     title: {
+        marginVertical: 5,
         fontSize: 15,
         color: 'grey',
     },

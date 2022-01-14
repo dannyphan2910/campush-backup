@@ -25,9 +25,10 @@ import Account from './components/Profile/Account';
 import Favorites from './components/Profile/Favorites';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Cart from './components/Cart';
-import MessageDashboard from './components/Messaging/MessageDashboard';
-import MessageView from './components/Messaging/MessageView';
+import Inbox from './components/Messaging/Inbox';
+import Chat from './components/Messaging/Chat';
 import { initStripe } from '@stripe/stripe-react-native';
+import SellerProfile from './components/SellerProfile';
 
 LogBox.ignoreLogs(['Warning: ...']); // Ignore log notification by message
 LogBox.ignoreAllLogs();//Ignore all log notifications
@@ -118,8 +119,10 @@ export default function App() {
               <Stack.Screen name="SellProduct" options={{ headerBackTitle: '', headerTitle: 'New Product' }} component={SellProduct} />
               <Stack.Screen name="Product" options={{ headerBackTitle: '', headerTitle: '' }} component={Product} />
 
-              <Stack.Screen name="Inbox" options={{ headerBackTitle: '', headerTitle: 'My Inbox' }} component={MessageDashboard} />
-              <Stack.Screen name="Chat" options={{ headerBackTitle: '', headerTitle: '' }} component={MessageView} />
+              <Stack.Screen name="Inbox" options={{ headerBackTitle: '', headerTitle: 'My Inbox' }} component={Inbox} />
+              <Stack.Screen name="Chat" options={{ headerBackTitle: '', headerTitle: '' }} component={Chat} />
+
+              <Stack.Screen name="SellerProfile" options={{ headerBackTitle: '', headerTitle: '' }} component={SellerProfile} />
             </Stack.Navigator>
           </NavigationContainer>
         </ApplicationProvider>

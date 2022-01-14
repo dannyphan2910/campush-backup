@@ -7,6 +7,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons'; 
 import firebase from "firebase";
 import Loading from '../Loading';
+import { Button } from '@ui-kitten/components';
 
 export default function Favorites() {
     const { currentUser } = useContext(UserContext)
@@ -15,6 +16,8 @@ export default function Favorites() {
     
     const [refresh, setRefresh] = useState(true)
     const [loading, setLoading] = useState(false)
+
+    const [showInactive, setShowInactive] = useState(false)
 
     const swipeRefs = useRef([])
  
@@ -53,6 +56,9 @@ export default function Favorites() {
     if (loading) {
         return <Loading />
     }
+
+    const showingProducts = showInactive ? favoritedProducts : favoritedProducts.filter(p => !p.purchased_by)
+    const inactiveProducts = favoritedProducts.filter(p => p.purchased_by)
 
     const noProductsView = (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -94,7 +100,10 @@ export default function Favorites() {
             const userFavoritesRef = db.collection('users_favorites').doc(currentUser.username)
     
             transaction.update(userFavoritesRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
-                .update(productRef, { favorited_by: firebase.firestore.FieldValue.arrayRemove(userRef) })
+                .update(productRef, { 
+                    favorited_by: firebase.firestore.FieldValue.arrayRemove(userRef),
+                    favorited_count: firebase.firestore.FieldValue.increment(-1) 
+                })
 
             return Promise.resolve()
         })
@@ -103,13 +112,30 @@ export default function Favorites() {
         .finally(() => setLoading(false))
     }
 
-    const productCards = ProductHelper.getProductCardsLong(favoritedProducts)
+    const handleClearInactive = () => {
+        setLoading(true)
+
+        db.runTransaction((transaction) => {
+            // perform these operations for EACH product in the cart
+            return Promise.all(inactiveProducts.map((product) => {
+                const productRef = db.collection('products').doc(product.id)
+                const favoritesRef = db.collection('users_favorites').doc(currentUser.username)
+                // clear this product from the cart of this user
+                transaction.update(favoritesRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
+            }))
+        })
+        .then(() => setRefresh(true))
+        .catch(err => console.error(err))
+        .finally(() => setLoading(false))
+    }
+
+    const productCards = ProductHelper.getProductCardsLong(showingProducts)
     const productCardsWithDelete = productCards.map((card, index) => (
         <Swipeable 
             ref={ref => swipeRefs.current[index] = ref}
             renderRightActions={renderRightActions}
             onSwipeableRightOpen={() => handleSwipeDelete(index)}
-            key={favoritedProducts[index].id}
+            key={showingProducts[index].id}
         >
             {card}
         </Swipeable>
@@ -128,7 +154,41 @@ export default function Favorites() {
 
     return (
         <SafeAreaView style={styles.container}>
-            {getProductCards}
+            <View style={{ flex: 10 }}>
+                {getProductCards}
+            </View>
+            <View style={{ flex: 1 }}>
+            {
+                showInactive ?
+                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', }}>
+                    <View style={{ flex: 1 }}>
+                        <Button
+                            style={[styles.button, { width: '75%' }]}
+                            onPress={() => setShowInactive(false)}
+                            status='info'
+                        >
+                            SHOW ACTIVE ONLY
+                        </Button>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Button
+                            style={[styles.button, { width: '75%' }]}
+                            onPress={handleClearInactive}
+                            status='info'
+                        >
+                            KEEP ACTIVE ONLY
+                        </Button>
+                    </View>
+                </View>:
+                <Button
+                    style={styles.button}
+                    onPress={() => setShowInactive(true)}
+                    status='info'
+                >
+                    SHOW ALL 
+                </Button>
+            }
+            </View>
         </SafeAreaView>
     );
 }
@@ -145,5 +205,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#dd2c00',
         flex: 1,
         justifyContent: 'flex-end'
-    }
+    },
+    button: {
+        alignSelf: 'center',
+        backgroundColor: 'black',
+        borderWidth: 0,
+        borderRadius: 5
+    },
 });

@@ -23,26 +23,26 @@ export default function Home() {
 
     useEffect(() => {
         const getProducts = () => {
-            db.collection('products').get()
-                .then(
-                    (querySnapshot) => {
-                        if (!querySnapshot.empty) {
-                            let products = []
-                            querySnapshot.forEach((productSnapshot) => {
-                                if (!productSnapshot.get('purchased_by') 
-                                    && productSnapshot.get('sold_by').id !== currentUser.username) {
-                                    const product = productSnapshot.data();
-                                    products.push(product)
-                                }
-                            });
-                            setFeatureProducts(products)
-                        } else {
-                            console.log('No products found')
-                        }
-                        setRefresh(false)
+            const currUserRef = db.collection('users').doc(currentUser.username)
+
+            db.collection('products')
+                .where('is_purchased', '==', false)
+                .where('sold_by', '!=', currUserRef)
+                .onSnapshot(snapshots => {
+                    if (!snapshots.empty) {
+                        let products = []
+                        snapshots.forEach(snapshot => {
+                            const usernames = snapshot.get('favorited_by').map(userRef => userRef.id)
+                            if (!usernames.includes(currentUser.username)) {
+                                products.push(snapshot.data())
+                            }
+                        })
+                        setFeatureProducts(products)
+                    } else {
+                        console.log('No suggested products found.')
                     }
-                )
-                .catch(err => console.error(err))
+                    setRefresh(false)
+                })
         }
 
         const getFavoritesCount = () => {
@@ -102,7 +102,10 @@ export default function Home() {
 
             const addFavorite = () => {
                 transaction.update(userFavoritesRef, { products: firebase.firestore.FieldValue.arrayUnion(productRef) })
-                    .update(productRef, { favorited_by: firebase.firestore.FieldValue.arrayUnion(userRef) })
+                    .update(productRef, { 
+                        favorited_by: firebase.firestore.FieldValue.arrayUnion(userRef),
+                        favorited_count: firebase.firestore.FieldValue.increment(1)
+                    })
             }
 
             return transaction.get(userFavoritesRef).then(snapshot => {
@@ -114,7 +117,7 @@ export default function Home() {
                 addFavorite()
             })
         })
-        .then(() => console.log('Added to favorites'))
+        .then(() => setFeatureProducts(featuredProducts.filter(p => p.id !== id)))
         .catch(err => console.error(err))
     }
 
@@ -156,7 +159,7 @@ export default function Home() {
                         actions={{
                             nope: { 
                                 onAction: (product) => { return true }, 
-                                text: <AntDesign name="dislike2" size={24} color="red" />,
+                                text: <AntDesign name="dislike2" size={24} color="crimson" />,
                             },
                             yup: { 
                                 onAction: (product) => { handleSwipeRight(product.id); return true }, 

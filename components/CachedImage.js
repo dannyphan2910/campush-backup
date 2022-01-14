@@ -51,8 +51,8 @@ export default class CachedImage extends Component {
         });
         }
         catch (err) {
-        console.log('Image loading error:', err);
-        this.setState({ imgURI: remoteURI });
+            console.log('Image loading error:', err);
+            this.setState({ imgURI: remoteURI });
         }
     }
 

@@ -1,26 +1,38 @@
 import { useNavigation } from "@react-navigation/core";
-import { firebaseStorage } from "../firebase";
-import React from 'react';
-import { Card, Text } from "@ui-kitten/components";
-import { Image, View } from "react-native";
+import { db, firebaseStorage } from "../firebase";
+import React, { useContext } from 'react';
+import { Card, Divider, Text } from "@ui-kitten/components";
+import { Dimensions, Pressable, View } from "react-native";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { FontAwesome } from '@expo/vector-icons';
 import CachedImage from "../components/CachedImage";
+import { UserContext } from "../context/user_context";
 
 export const ProductHelper = {
-    getProductCardsLong: (products, styles={}) => {
+    getProductCardsLong: (products, styles={}, onPress=undefined, onLongPress=(product)=>{}) => {
         const navigation = useNavigation()
 
+        let handleOnPress = (product) => {
+          if (onPress) {
+            onPress(product)
+          } else {
+            navigation.navigate('Product', { id: product.id })
+          }
+        }
+
         return products.map((product) => (
-            <Card style={[{ margin: 5 }, styles]} key={product.id} onPress={() => navigation.navigate('Product', { id: product.id })}>
-                <View style={{ flex: 1, flexDirection: 'row' }}>
-                    <View style={{ flex: 2, justifyContent: 'center' }}>
+            <Card style={[{ margin: 5, backgroundColor: 'white' }, styles]} 
+                  key={product.id} 
+                  onPress={() => handleOnPress(product)} 
+                  onLongPress={() => onLongPress(product)}>
+                <View style={{ flex: 1, flexDirection: 'row', opacity: product.purchased_by ? 0.2 : 1 }}>
+                    <View style={{ flex: 2, justifyContent: 'center', minWidth: 100 }}>
                         <CachedImage style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_urls[0] }} />
                     </View>
-                    <View style={{ flex: 3, justifyContent: 'space-between' }}>
-                        <Text><Text category='s1'>Name: </Text>{product.name}</Text>
-                        <Text><Text category='s1'>Price: </Text>${GeneralHelper.numberWithCommas(product.price)}</Text>
-                        <Text><FontAwesome name="heart" size={10} color="black" /> {product.favorited_by.length}</Text>
+                    <View style={{ flex: 15, justifyContent: 'space-between' }}>
+                        <Text numberOfLines={1}><Text category='s1'>Name: </Text>{product.name}</Text>
+                        <Text numberOfLines={1}><Text category='s1'>Price: </Text>${GeneralHelper.numberWithCommas(product.price)}</Text>
+                        <Text numberOfLines={1}><FontAwesome name="heart" size={10} color="black" /> {product.favorited_count}</Text>
                     </View>
                 </View>
             </Card>
@@ -335,7 +347,7 @@ export const ImageHelper = {
     compressImage: async (uri) => {
         const manipResult = await manipulateAsync(
             uri,
-            [{ resize: { height: 500, width: 500 } }],
+            [{ resize: { width: 500 } }],
             { compress: 0.8, format: SaveFormat.PNG }
           );
         return manipResult.uri
@@ -354,5 +366,131 @@ export const CartHelper = {
             fees: GeneralHelper.numberWithCommas(fees),
             total: GeneralHelper.numberWithCommas(GeneralHelper.roundedBy2(subtotal + fees)),
         }
+    }
+}
+
+export const MessageHelper = {
+    
+    convertMsgFormatDBToUI: async (messages, userA, userB) => {
+      const getUserObj = (username) => {
+        if (username === userA.username) {
+          return {
+            _id: username,
+            avatar: userA.avatar_url,
+            name: `${userA.first_name} ${userA.last_name}`
+          }
+        } else {
+          return {
+            _id: username,
+            avatar: userB.avatar_url,
+            name: `${userB.first_name} ${userB.last_name}`
+          }
+        }
+      }
+
+      return Promise.all(messages.map(async (msg) => {
+        let uimsg = {
+          _id: msg.id,
+          createdAt: msg.created_at,
+          type: msg.type,
+          user: getUserObj(msg.by_username)
+        }
+
+        if (msg.type === 'text') {
+          uimsg = {
+            ...uimsg,
+            text: msg.text
+          }
+        } else if (msg.type === 'image') {
+          uimsg = {
+            ...uimsg,
+            image: msg.image
+          }
+        } else if (msg.type === 'location') {
+          uimsg = {
+            ...uimsg,
+            location: msg.location
+          }
+        } else if (msg.type === 'product') {
+          const { productId } = msg
+          const product = await db.collection('products').doc(productId).get().then(snapshot => snapshot.data())
+
+          uimsg = {
+            ...uimsg,
+            product: product
+          }
+        } 
+  
+        return uimsg
+      }))
+    },
+
+    getConvoCards: (conversations, styles={}) => {
+			const { currentUser } = useContext(UserContext)
+      const navigation = useNavigation()
+
+      return conversations.map((conversation) => {
+				const goToChat = () => 
+					navigation.navigate('Chat', {
+						sendee: conversation.sendee,
+						conversation: conversation
+					})
+
+				let preview_text = ''
+				if (conversation.last_message) {
+          if (conversation.last_message.type === 'deleted') {
+						preview_text = '[Deleted]'
+					} else if (conversation.last_message.type === 'text') {
+						preview_text = conversation.last_message.text
+					} else if (conversation.last_message.type === 'image') {
+            preview_text = '[Photo]'
+          } else if (conversation.last_message.type === 'location') {
+            preview_text = '[Location]'
+          } else if (conversation.last_message.type === 'product') {
+            preview_text = '[Product]'
+          }
+					// process other types here
+					const from_curr_user = conversation.last_message.by_username === currentUser.username
+					preview_text = (from_curr_user ? 'You: ' : '') + preview_text
+				}
+				
+				return (
+          <Card style={[{ margin: 5, backgroundColor: 'white' }, styles]} key={conversation.id} onPress={goToChat}>
+              <View style={{ flex: 1, flexDirection: 'row', opacity: conversation.is_archived ? 0.2 : 1 }}>
+                  <View style={{ flex: 2, justifyContent: 'center', minWidth: 50 }}>
+                      <CachedImage style={{ height: 50, width: 50, borderRadius: 25 }} source={{ uri: conversation.sendee.avatar_url }} />
+                  </View>
+                  <View style={{ flex: 15, justifyContent: conversation.last_message ? 'space-between' : 'center' }}>
+                      <Text numberOfLines={1} category='s1'>{conversation.sendee.username}</Text>
+											{conversation.last_message && <Text numberOfLines={1} appearance='hint'>{preview_text}</Text>}
+                  </View>
+              </View>
+          </Card>
+      )
+			})
+    },
+
+    getProductView: (navigation, product) => {
+      const windowWidth = Dimensions.get('window').width;
+
+      return (
+        <Pressable 
+          style={{ width: windowWidth*0.8, minWidth: 100, backgroundColor: 'white', margin: 3, borderRadius: 12, padding: 10, paddingTop: 5 }} 
+          key={product.id} 
+          onPress={() => navigation.navigate('Product', { id: product.id })}>
+            <Text style={{ marginBottom: 5, textAlign: 'center', fontSize: 12, fontWeight: '400' }}>Mentioned a Product</Text>
+            <Divider />
+            <View style={{ marginTop: 5, flex: 1, flexDirection: 'row' }}>
+                <View style={{ flex: 2, justifyContent: 'center' }}>
+                    <CachedImage style={{ width: 100, height: 100 }} source={{ uri: product.thumbnail_urls[0] }} />
+                </View>
+                <View style={{ flex: 3, justifyContent: 'space-between' }}>
+                    <Text><Text category='s1'>Name: </Text>{product.name}</Text>
+                    <Text><Text category='s1'>Price: </Text>${product.price}</Text>
+                    <Text><FontAwesome name="heart" size={10} color="black" /> {product.favorited_count}</Text>
+                </View>
+            </View>
+        </Pressable>
+      )
     }
 }

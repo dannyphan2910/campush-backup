@@ -52,9 +52,13 @@ export default function SellProduct({ route }) {
                 condition: condition,
                 brand: brand,
                 favorited_by: [],
+                favorited_count: 0,
                 thumbnail_urls: urls,
                 sold_by: db.collection('users').doc(currentUser.username),
                 // purchased_by: null,
+                is_purchased: false,
+                // feedback: null,
+                has_feedback: false,
                 created_at: firebase.firestore.FieldValue.serverTimestamp()
             }
             
@@ -204,7 +208,7 @@ export default function SellProduct({ route }) {
                                 status='success'
                                 disabled={imageURIs.length >= 3}
                             >
-                                Add Photo ({imageURIs.length}/3)
+                                ADD PHOTO ({imageURIs.length}/3)
                             </Button>
                         </View>
                         <View style={{ flex: 4, justifyContent: 'center', alignItems: 'center', }}>
@@ -224,7 +228,7 @@ export default function SellProduct({ route }) {
                                                 <AntDesign 
                                                     name="minuscircle" 
                                                     size={25} 
-                                                    color="red" 
+                                                    color="crimson" 
                                                     style={{ position: 'absolute', top: -10, right: -10 }} 
                                                     onPress={() => removeImageURI(index)} />
                                             </View>
@@ -244,7 +248,7 @@ export default function SellProduct({ route }) {
                                             onPress={handleEditSave}
                                             status='info'
                                         >
-                                            Save Changes
+                                            SAVE CHANGES
                                         </Button>
                                     </View>
                                     <View style={{ flex: 1 }}>
@@ -253,7 +257,7 @@ export default function SellProduct({ route }) {
                                             onPress={() => navigation.navigate('Product', { id: product.id, refresh: true })}
                                             status='info'
                                         >
-                                            Cancel
+                                            CANCEL
                                         </Button>
                                     </View>
                                 </View>:
@@ -263,7 +267,7 @@ export default function SellProduct({ route }) {
                                     onPress={handleSubmit}
                                     status='info'
                                 >
-                                    Create Product
+                                    CREATE PRODUCT
                                 </Button>
                             }
                         </View>

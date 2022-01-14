@@ -1,3 +1,4 @@
+import { Button } from '@ui-kitten/components'
 import React, { useContext, useEffect, useState } from 'react'
 import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { UserContext } from '../../../context/user_context'
@@ -71,7 +72,12 @@ export default function PurchasedList({ route }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        flexDirection: 'column',
         backgroundColor: 'white',
-    }
+    },
+    button: {
+        alignSelf: 'center',
+        backgroundColor: 'black',
+        borderWidth: 0,
+        borderRadius: 5
+    },
 });

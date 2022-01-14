@@ -83,6 +83,7 @@ export default function Profile() {
                 </View>
                 {countSection}
             </View>
+            <Divider style={{ width: '100%' }} />
             <View style={{ flex: 2 }}>
                 <Menu style={{ backgroundColor: 'white' }}>
                     <MenuItem

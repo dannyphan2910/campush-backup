@@ -225,7 +225,7 @@ export default function Find() {
         <KeyboardAvoidingView style={styles.container} keyboardVerticalOffset={StatusBar.currentHeight} behavior="padding">
             <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); sheetRef?.current.snapTo(1) }}>
                 <SafeAreaView style={[styles.container, { paddingTop: 50, marginHorizontal: 10 }]}>
-                    <View style={{ flex: 2, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' }}>
+                    <View style={{ flex: 2, paddingTop: 20, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' }}>
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                             <Pressable style={{ backgroundColor: isActiveFilter ? 'black' : 'lightgray', justifyContent: 'center', alignItems: 'center', borderWidth: 0, borderTopLeftRadius: 5, borderBottomLeftRadius: 5, padding: 10, width: '100%', height: 55 }} onPress={handleOpenTab}>
                                 <Feather name="filter" size={20} color="white" />
@@ -247,8 +247,7 @@ export default function Find() {
                 ref={sheetRef}
                 snapPoints={['50%', 0]}
                 initialSnap={1}
-                renderContent={renderContent}
-                
+                renderContent={renderContent} 
             />
         </KeyboardAvoidingView>
     )

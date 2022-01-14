@@ -1,13 +1,16 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useNavigation } from '@react-navigation/core';
-import { Alert, Animated, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Animated, Dimensions, I18nManager, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
 import { UserContext } from '../context/user_context'
 import { db } from '../firebase'
-import { CartHelper, GeneralHelper, ProductHelper } from '../helper/helper'
-import { Feather } from '@expo/vector-icons'; 
+import { CartHelper, ProductHelper } from '../helper/helper'
+import { Feather, FontAwesome5 } from '@expo/vector-icons'; 
 import firebase from "firebase";
-import { Button, Divider } from '@ui-kitten/components'
+import { Button, Card, Divider, Modal } from '@ui-kitten/components'
+
+const windowWidth = Dimensions.get('window').width;
+const windowHeight = Dimensions.get('window').height;
 
 export default function Cart({ route }) {
     const { currentUser } = useContext(UserContext)
@@ -15,7 +18,10 @@ export default function Cart({ route }) {
     const navigation = useNavigation()
 
     const [cartProducts, setCartProducts] = useState([])
+    const [inactiveProducts, setInactiveProducts] = useState([])
     const [refresh, setRefresh] = useState(true)
+
+    const [visibleInactiveCard, setVisibleInactiveCard] = useState(false)
 
     const swipeRefs = useRef([])
 
@@ -32,7 +38,10 @@ export default function Cart({ route }) {
                                 })
                                 Promise.all(productPromises).then(productSnapshots => {
                                     const productsFound = productSnapshots.map(productSnapshot => productSnapshot.data())
-                                    setCartProducts(productsFound)
+                                    const activeProducts = productsFound.filter(p => !p.purchased_by)
+                                    const inactiveProducts = productsFound.filter(p => p.purchased_by)
+                                    setCartProducts(activeProducts)
+                                    setInactiveProducts(inactiveProducts)
                                 })
                             }
                         } else {
@@ -46,7 +55,7 @@ export default function Cart({ route }) {
     }, [route, refresh])
 
     const noProductsView = (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 10 }}>
             <ScrollView contentContainerStyle={{ flex: 1 }} refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <Text>Your cart is empty. Add a product now!</Text>
@@ -117,28 +126,21 @@ export default function Cart({ route }) {
                     const userPurchasesRef = db.collection('users_purchases').doc(currentUser.username)
                     const currentUserRef = db.collection('users').doc(currentUser.username)
                     const sellerProductsRef = db.collection('users_products').doc(product.sold_by.id)
+                    const cartRef = db.collection('users_carts').doc(currentUser.username)
 
-                    return Promise.all([
-                        db.collection('users_carts').where('products', 'array-contains', productRef).get()
-                            .then(querySnapshot => {
-                                // remove this product from the carts of ALL users
-                                if (!querySnapshot.empty) {
-                                    querySnapshot.docs.forEach(ref => {
-                                        const cartRef = db.collection('users_carts').doc(ref.id)
-                                        console.log(cartRef.path)
-                                        transaction.update(cartRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
-                                    })
-                                }
-                            }), 
-                        // add the 'purchased_by' field to this product
-                        transaction.update(productRef, { purchased_by: currentUserRef }),
-                        // add this product to the list of purchases of this useer
-                        transaction.update(userPurchasesRef, { products: firebase.firestore.FieldValue.arrayUnion(productRef) }),
-                        // remove this product from the list of ACTIVE products of the seller
-                        transaction.update(sellerProductsRef, { active: firebase.firestore.FieldValue.arrayRemove(productRef) }),
-                        // add this product to the list of INACTIVE products of the seller
-                        transaction.update(sellerProductsRef, { inactive: firebase.firestore.FieldValue.arrayUnion(productRef) }),
-                    ])
+                    // add the 'purchased_by' field to this product
+                    transaction.update(productRef, { 
+                        purchased_by: currentUserRef, 
+                        purchased_at: firebase.firestore.FieldValue.serverTimestamp()
+                    })
+                    // add this product to the list of purchases of this user
+                    transaction.update(userPurchasesRef, { products: firebase.firestore.FieldValue.arrayUnion(productRef) })
+                    // remove this product from the list of ACTIVE products of the seller
+                    transaction.update(sellerProductsRef, { active: firebase.firestore.FieldValue.arrayRemove(productRef) })
+                    // add this product to the list of INACTIVE products of the seller
+                    transaction.update(sellerProductsRef, { inactive: firebase.firestore.FieldValue.arrayUnion(productRef) })
+                    // clear this product from the cart of this user
+                    transaction.update(cartRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
                 }))
             })
             .then(() => {
@@ -151,6 +153,21 @@ export default function Cart({ route }) {
         }
     }
 
+    const handleClearInactive = () => {
+        db.runTransaction((transaction) => {
+            // perform these operations for EACH product in the cart
+            return Promise.all(inactiveProducts.map((product) => {
+                const productRef = db.collection('products').doc(product.id)
+                const cartRef = db.collection('users_carts').doc(currentUser.username)
+                // clear this product from the cart of this user
+                transaction.update(cartRef, { products: firebase.firestore.FieldValue.arrayRemove(productRef) })
+            }))
+        })
+        .then(() => setRefresh(true))
+        .catch(err => console.error(err))
+    }
+
+    const inactiveProductCards = ProductHelper.getProductCardsLong(inactiveProducts)
     const cartProductCards = ProductHelper.getProductCardsLong(cartProducts)
     const cartProductCardsWithRemove = cartProductCards.map((card, index) => (
         <Swipeable 
@@ -166,7 +183,7 @@ export default function Cart({ route }) {
     const { subtotal, fees, total } = CartHelper.getTotalCost(cartProducts)
 
     const productsView = (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 10 }}>
             <View style={{ flex: 6, paddingTop: 15 }}>
                 <ScrollView refreshControl={<RefreshControl refreshing={refresh} onRefresh={() => setRefresh(true)} />}>
                     {cartProductCardsWithRemove}
@@ -201,10 +218,44 @@ export default function Cart({ route }) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={{ flex: 1, paddingTop: 15 }}>
-                <Text style={{ padding: 20, fontSize: 28, fontWeight: '600' }}>My Cart</Text>
-                {getProductCards}
+            <View style={{ flex: 1, paddingTop: 20, paddingHorizontal: 20, flexDirection: 'row' }}>
+                <View style={{ flex: 6, alignItems: 'flex-start', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 28, fontWeight: '600' }}>My Cart</Text>
+                </View>
+                <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+                    {
+                        inactiveProducts.length > 0 &&
+                        <View>
+                            <FontAwesome5 name="exclamation-circle" size={24} color="crimson" onPress={() => setVisibleInactiveCard(true)} />
+                            <Modal visible={visibleInactiveCard} backdropStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }} onBackdropPress={() => setVisibleInactiveCard(false)}>
+                                <Card>
+                                    <View style={{ flex: 1, width: windowWidth*0.8, height: windowHeight*0.5 }}>
+                                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                                            <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 5 }}>OUT-OF-STOCK PRODUCTS</Text>
+                                            <Text style={{ fontSize: 15, fontWeight: '400' }}>Found {inactiveProductCards.length} Products In Your Cart</Text>
+                                        </View>
+                                        <View style={{ flex: 10, alignItems: 'center', justifyContent: 'center', marginVertical: 20 }}>
+                                            <ScrollView style={{ width: '100%' }}>
+                                                {inactiveProductCards}
+                                            </ScrollView>
+                                        </View>
+                                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                                            <Button
+                                                style={styles.button}
+                                                onPress={handleClearInactive}
+                                                status='info'
+                                            >
+                                                CLEAR ALL
+                                            </Button>
+                                        </View>
+                                    </View>
+                                </Card>
+                            </Modal>
+                        </View>
+                    }
+                </View>
             </View>
+            {getProductCards}
         </SafeAreaView>
     )
 }
@@ -235,5 +286,11 @@ const styles = StyleSheet.create({
         flex: 4, 
         justifyContent: 'center', 
         alignItems: 'flex-end',
-    }
+    },
+    button: {
+        alignSelf: 'center',
+        backgroundColor: 'black',
+        borderWidth: 0,
+        borderRadius: 5
+    },
 });
